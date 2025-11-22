@@ -3,7 +3,6 @@
 #include "Mesh.hpp"
 #include "Shader.hpp"
 
-#define GL_SILENCE_DEPRECATION
 #include <OpenGL/gl3.h>
 
 #include <memory>

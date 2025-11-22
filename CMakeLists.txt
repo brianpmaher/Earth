@@ -39,4 +39,5 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE
     SDL_MAIN_USE_CALLBACKS
+    GL_SILENCE_DEPRECATION
 )
