@@ -5,8 +5,6 @@
 
 #include <OpenGL/gl3.h>
 
-#include <memory>
-
 namespace Earth
 {
     class Renderer
@@ -20,7 +18,7 @@ namespace Earth
         void Draw(const glm::mat4& viewProjection);
 
       private:
-        std::unique_ptr<Shader> m_Shader;
+        Shader m_Shader;
         GLuint m_VAO = 0;
         GLuint m_VBO = 0;
         GLuint m_EBO = 0;

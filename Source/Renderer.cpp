@@ -4,9 +4,8 @@
 
 namespace Earth
 {
-    Renderer::Renderer()
+    Renderer::Renderer() : m_Shader{"Assets/Shaders/Earth.vert.glsl", "Assets/Shaders/Earth.frag.glsl"}
     {
-        m_Shader = std::make_unique<Shader>("Assets/Shaders/Earth.vert.glsl", "Assets/Shaders/Earth.frag.glsl");
     }
 
     Renderer::~Renderer()
@@ -58,9 +57,9 @@ namespace Earth
         if (m_IndexCount == 0)
             return;
 
-        m_Shader->Bind();
+        m_Shader.Bind();
 
-        GLint loc = glGetUniformLocation(m_Shader->GetRendererID(), "u_ViewProjection");
+        GLint loc = glGetUniformLocation(m_Shader.GetRendererID(), "u_ViewProjection");
         glUniformMatrix4fv(loc, 1, GL_FALSE, &viewProjection[0][0]);
 
         glBindVertexArray(m_VAO);
