@@ -3,3 +3,6 @@ Build/
 
 # Clang cache
 .cache/
+
+# Environment variable files
+.env

@@ -2,6 +2,8 @@
 #include "Mercator.hpp"
 #include "Renderer.hpp"
 
+#include <dotenv.h>
+
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_init.h>
 #include <SDL3/SDL_keycode.h>
@@ -25,6 +27,8 @@ namespace
 
 SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 {
+    dotenv::init();
+
     if (!SDL_InitSubSystem(SDL_INIT_VIDEO))
     {
         s_Logger.Error("Failed to initialize SDL Video subsystem: {}", SDL_GetError());

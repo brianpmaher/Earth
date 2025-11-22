@@ -20,6 +20,12 @@ CPMAddPackage(
     GIT_TAG 1.0.2
 )
 
+CPMAddPackage(
+    NAME dotenv-cpp
+    GITHUB_REPOSITORY laserpants/dotenv-cpp
+    GIT_TAG master
+)
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
 
@@ -34,6 +40,7 @@ add_executable(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME} PRIVATE
     SDL3::SDL3
     glm::glm
+    dotenv
     "-framework OpenGL"
 )
 
