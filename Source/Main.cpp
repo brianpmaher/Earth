@@ -13,7 +13,6 @@ namespace
     Earth::Logger s_Logger("Earth");
 
     SDL_Window* s_Window;
-
     SDL_GLContext s_GLContext;
 }
 

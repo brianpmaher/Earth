@@ -14,6 +14,12 @@ CPMAddPackage(
     GIT_TAG release-3.2.26
 )
 
+CPMAddPackage(
+    NAME glm
+    GITHUB_REPOSITORY g-truc/glm
+    GIT_TAG 1.0.2
+)
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
 
@@ -24,6 +30,7 @@ add_executable(${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     SDL3::SDL3
+    glm::glm
 )
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE
