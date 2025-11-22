@@ -26,6 +26,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
 add_executable(${PROJECT_NAME}
     Source/Logger.cpp
     Source/Renderer.cpp
+    Source/Shader.cpp
     Source/Mercator.cpp
     Source/Main.cpp
 )

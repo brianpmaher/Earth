@@ -1,9 +1,12 @@
 #pragma once
 
 #include "Mesh.hpp"
+#include "Shader.hpp"
 
 #define GL_SILENCE_DEPRECATION
 #include <OpenGL/gl3.h>
+
+#include <memory>
 
 namespace Earth
 {
@@ -18,7 +21,7 @@ namespace Earth
         void Draw(const glm::mat4& viewProjection);
 
       private:
-        GLuint m_ShaderProgram = 0;
+        std::unique_ptr<Shader> m_Shader;
         GLuint m_VAO = 0;
         GLuint m_VBO = 0;
         GLuint m_EBO = 0;

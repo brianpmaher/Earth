@@ -1,84 +1,16 @@
 #include "Renderer.hpp"
 
-#include <fstream>
-#include <print>
-#include <sstream>
 #include <vector>
-
-namespace
-{
-    std::string ReadFile(const std::string& filepath)
-    {
-        std::ifstream file(filepath);
-        if (!file.is_open())
-        {
-            std::println("Failed to open file: {}", filepath);
-            return "";
-        }
-        std::stringstream buffer;
-        buffer << file.rdbuf();
-        return buffer.str();
-    }
-
-    GLuint CompileShader(GLenum type, const std::string& source)
-    {
-        GLuint shader = glCreateShader(type);
-        const char* src = source.c_str();
-        glShaderSource(shader, 1, &src, NULL);
-        glCompileShader(shader);
-
-        GLint success;
-        glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-        if (!success)
-        {
-            char infoLog[512];
-            glGetShaderInfoLog(shader, 512, NULL, infoLog);
-            std::println("Shader Compile Error: {}", infoLog);
-        }
-
-        return shader;
-    }
-
-    GLuint CreateShader(const std::string& vertexSrc, const std::string& fragmentSrc)
-    {
-        GLuint vs = CompileShader(GL_VERTEX_SHADER, vertexSrc);
-        GLuint fs = CompileShader(GL_FRAGMENT_SHADER, fragmentSrc);
-
-        GLuint program = glCreateProgram();
-        glAttachShader(program, vs);
-        glAttachShader(program, fs);
-        glLinkProgram(program);
-
-        GLint success;
-        glGetProgramiv(program, GL_LINK_STATUS, &success);
-        if (!success)
-        {
-            char infoLog[512];
-            glGetProgramInfoLog(program, 512, NULL, infoLog);
-            std::println("Shader Link Error: {}", infoLog);
-        }
-
-        glDeleteShader(vs);
-        glDeleteShader(fs);
-
-        return program;
-    }
-}
 
 namespace Earth
 {
     Renderer::Renderer()
     {
-        std::string vertexSrc = ReadFile("Assets/Shaders/Earth.vert.glsl");
-        std::string fragmentSrc = ReadFile("Assets/Shaders/Earth.frag.glsl");
-
-        m_ShaderProgram = CreateShader(vertexSrc, fragmentSrc);
+        m_Shader = std::make_unique<Shader>("Assets/Shaders/Earth.vert.glsl", "Assets/Shaders/Earth.frag.glsl");
     }
 
     Renderer::~Renderer()
     {
-        if (m_ShaderProgram)
-            glDeleteProgram(m_ShaderProgram);
         if (m_VAO)
             glDeleteVertexArrays(1, &m_VAO);
         if (m_VBO)
@@ -126,9 +58,9 @@ namespace Earth
         if (m_IndexCount == 0)
             return;
 
-        glUseProgram(m_ShaderProgram);
+        m_Shader->Bind();
 
-        GLint loc = glGetUniformLocation(m_ShaderProgram, "u_ViewProjection");
+        GLint loc = glGetUniformLocation(m_Shader->GetRendererID(), "u_ViewProjection");
         glUniformMatrix4fv(loc, 1, GL_FALSE, &viewProjection[0][0]);
 
         glBindVertexArray(m_VAO);
