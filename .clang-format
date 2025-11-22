@@ -1,0 +1,7 @@
+---
+BasedOnStyle: Microsoft
+NamespaceIndentation: All
+FixNamespaceComments: false
+BreakTemplateDeclarations: true
+PointerAlignment: Left
+...
