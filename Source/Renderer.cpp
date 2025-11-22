@@ -1,10 +1,25 @@
 #include "Renderer.hpp"
 
+#include <fstream>
 #include <print>
+#include <sstream>
 #include <vector>
 
 namespace
 {
+    std::string ReadFile(const std::string& filepath)
+    {
+        std::ifstream file(filepath);
+        if (!file.is_open())
+        {
+            std::println("Failed to open file: {}", filepath);
+            return "";
+        }
+        std::stringstream buffer;
+        buffer << file.rdbuf();
+        return buffer.str();
+    }
+
     GLuint CompileShader(GLenum type, const std::string& source)
     {
         GLuint shader = glCreateShader(type);
@@ -54,39 +69,8 @@ namespace Earth
 {
     Renderer::Renderer()
     {
-        // Basic Shaders
-        std::string vertexSrc = R"(
-            #version 410 core
-            layout(location = 0) in vec3 a_Position;
-            layout(location = 1) in vec2 a_UV;
-
-            uniform mat4 u_ViewProjection;
-
-            out vec2 v_UV;
-
-            void main()
-            {
-                v_UV = a_UV;
-                gl_Position = u_ViewProjection * vec4(a_Position, 1.0);
-            }
-        )";
-
-        std::string fragmentSrc = R"(
-            #version 410 core
-            in vec2 v_UV;
-            out vec4 FragColor;
-
-            void main()
-            {
-                // Debug grid pattern
-                float gridX = step(0.98, fract(v_UV.x * 32.0));
-                float gridY = step(0.98, fract(v_UV.y * 32.0));
-                float grid = max(gridX, gridY);
-                
-                vec3 color = mix(vec3(0.2, 0.3, 0.8), vec3(1.0), grid);
-                FragColor = vec4(color, 1.0);
-            }
-        )";
+        std::string vertexSrc = ReadFile("Assets/Shaders/Earth.vert.glsl");
+        std::string fragmentSrc = ReadFile("Assets/Shaders/Earth.frag.glsl");
 
         m_ShaderProgram = CreateShader(vertexSrc, fragmentSrc);
     }
