@@ -21,8 +21,6 @@ namespace Earth
 
         Logger(std::string_view name, Level level = Level::Info);
 
-        ~Logger();
-
         template <typename... Args>
         void Debug(std::string_view format, Args&&... args)
         {

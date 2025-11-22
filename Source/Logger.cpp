@@ -18,10 +18,6 @@ namespace Earth
     {
     }
 
-    Logger::~Logger()
-    {
-    }
-
     void Logger::Log(std::string_view level, std::string_view message)
     {
         if (static_cast<int>(m_Level) >= static_cast<int>(s_Level))
