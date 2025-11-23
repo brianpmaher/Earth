@@ -18,6 +18,11 @@ namespace Earth
         void Update(const Camera& camera);
         void Draw(Renderer& renderer, const glm::mat4& viewProjection);
 
+        bool IsRenderable() const
+        {
+            return m_IsRenderable;
+        }
+
       private:
         void Split();
         void Merge();
@@ -29,6 +34,9 @@ namespace Earth
 
         std::shared_ptr<Tile> m_Tile;
         std::vector<std::unique_ptr<QuadtreeNode>> m_Children;
+
+        bool m_IsRenderable = false;
+        bool m_AllChildrenRenderable = false;
     };
 
     class Quadtree

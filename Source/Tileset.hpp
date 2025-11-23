@@ -16,6 +16,7 @@ namespace Earth
         ~Tile();
 
         void Bind(int slot = 0);
+        void CheckLoad();
         bool IsLoaded() const
         {
             return TextureID != 0;
@@ -25,8 +26,6 @@ namespace Earth
         GLuint TextureID = 0;
 
       private:
-        void CheckLoad();
-
         std::future<Image> m_Future;
         bool m_IsLoading = true;
     };

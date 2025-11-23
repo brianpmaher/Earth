@@ -18,6 +18,11 @@ namespace Earth
 
     void QuadtreeNode::Update(const Camera& camera)
     {
+        if (m_Tile)
+        {
+            m_Tile->CheckLoad();
+        }
+
         if (ShouldSplit(camera))
         {
             if (m_Children.empty())
@@ -25,10 +30,16 @@ namespace Earth
                 Split();
             }
 
+            bool childrenReady = true;
             for (auto& child : m_Children)
             {
                 child->Update(camera);
+                if (!child->IsRenderable())
+                {
+                    childrenReady = false;
+                }
             }
+            m_AllChildrenRenderable = childrenReady;
         }
         else
         {
@@ -36,12 +47,22 @@ namespace Earth
             {
                 Merge();
             }
+            m_AllChildrenRenderable = false;
         }
+
+        m_IsRenderable = m_AllChildrenRenderable || (m_Tile && m_Tile->IsLoaded());
     }
 
     void QuadtreeNode::Draw(Renderer& renderer, const glm::mat4& viewProjection)
     {
-        if (m_Children.empty())
+        if (m_AllChildrenRenderable)
+        {
+            for (auto& child : m_Children)
+            {
+                child->Draw(renderer, viewProjection);
+            }
+        }
+        else
         {
             if (m_Tile)
             {
@@ -50,13 +71,6 @@ namespace Earth
                 {
                     renderer.DrawTile(viewProjection, m_X, m_Y, m_Z, true);
                 }
-            }
-        }
-        else
-        {
-            for (auto& child : m_Children)
-            {
-                child->Draw(renderer, viewProjection);
             }
         }
     }
