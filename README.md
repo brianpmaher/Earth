@@ -2,6 +2,8 @@
 
 A 3D Earth renderer with satellite imagery and terrain elevation data fetched dynamically from MapTiler.
 
+[![](screenshot.png)]
+
 ## Prerequisites
 
 Before building the project, ensure you have the following installed:
