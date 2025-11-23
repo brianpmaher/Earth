@@ -1,4 +1,5 @@
 #include "Camera.hpp"
+#include "Framebuffer.hpp"
 #include "Logger.hpp"
 #include "Mercator.hpp"
 #include "Quadtree.hpp"
@@ -9,6 +10,7 @@
 #include "backends/imgui_impl_opengl3.h"
 #include "backends/imgui_impl_sdl3.h"
 #include "imgui.h"
+#include "imgui_internal.h"
 
 #include <dotenv.h>
 
@@ -44,7 +46,10 @@ namespace
     std::unique_ptr<Earth::Tileset> s_TerrainTileset;
     std::unique_ptr<Earth::Quadtree> s_Quadtree;
     std::unique_ptr<Earth::Camera> s_Camera;
+    std::unique_ptr<Earth::Framebuffer> s_Framebuffer;
     bool s_ShowLog = false;
+    bool s_ViewportFocused = false;
+    bool s_ViewportHovered = false;
 }
 
 SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
@@ -77,6 +82,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 
     s_Renderer = std::make_unique<Earth::Renderer>();
     s_Camera = std::make_unique<Earth::Camera>(1280.0f, 720.0f);
+    s_Framebuffer = std::make_unique<Earth::Framebuffer>(1280, 720);
 
     if (const char* mapTilerKey = std::getenv("MAPTILER_KEY"))
     {
@@ -145,7 +151,27 @@ SDL_AppResult SDL_AppIterate(void* appstate)
     ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
 
-    ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
+    ImGuiID dockSpaceID = ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), ImGuiDockNodeFlags_None);
+
+    static bool first_time = true;
+    if (first_time)
+    {
+        first_time = false;
+
+        if (!ImGui::DockBuilderGetNode(dockSpaceID)->IsSplitNode())
+        {
+            ImGui::DockBuilderRemoveNode(dockSpaceID);
+            ImGui::DockBuilderAddNode(dockSpaceID, ImGuiDockNodeFlags_DockSpace);
+            ImGui::DockBuilderSetNodeSize(dockSpaceID, ImGui::GetMainViewport()->Size);
+
+            ImGuiID dockMain = dockSpaceID;
+            ImGuiID dockLog = ImGui::DockBuilderSplitNode(dockMain, ImGuiDir_Down, 0.3f, nullptr, &dockMain);
+
+            ImGui::DockBuilderDockWindow("Viewport", dockMain);
+            ImGui::DockBuilderDockWindow("Log", dockLog);
+            ImGui::DockBuilderFinish(dockSpaceID);
+        }
+    }
 
     if (ImGui::BeginMainMenuBar())
     {
@@ -174,11 +200,27 @@ SDL_AppResult SDL_AppIterate(void* appstate)
         Earth::Logger::Draw(&s_ShowLog);
     }
 
-    int w, h;
-    SDL_GetWindowSize(s_Window.get(), &w, &h);
-    glViewport(0, 0, w, h);
-    s_Camera->Resize((float)w, (float)h);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+    if (ImGui::Begin("Viewport"))
+    {
+        s_ViewportFocused = ImGui::IsWindowFocused();
+        s_ViewportHovered = ImGui::IsWindowHovered();
 
+        ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
+        if (viewportPanelSize.x > 0 && viewportPanelSize.y > 0)
+        {
+            s_Framebuffer->Resize((int)viewportPanelSize.x, (int)viewportPanelSize.y);
+            s_Camera->Resize(viewportPanelSize.x, viewportPanelSize.y);
+        }
+
+        uint64_t textureID = s_Framebuffer->GetTextureID();
+        ImGui::Image((ImTextureID)textureID, ImVec2(s_Framebuffer->GetWidth(), s_Framebuffer->GetHeight()),
+                     ImVec2(0, 1), ImVec2(1, 0));
+    }
+    ImGui::End();
+    ImGui::PopStyleVar();
+
+    s_Framebuffer->Bind();
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -192,6 +234,7 @@ SDL_AppResult SDL_AppIterate(void* appstate)
         glm::mat4 view = s_Camera->GetViewMatrix();
         s_Quadtree->Draw(*s_Renderer, projection * view);
     }
+    s_Framebuffer->Unbind();
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -212,13 +255,25 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
         if (event->type == SDL_EVENT_MOUSE_BUTTON_DOWN || event->type == SDL_EVENT_MOUSE_BUTTON_UP ||
             event->type == SDL_EVENT_MOUSE_MOTION || event->type == SDL_EVENT_MOUSE_WHEEL)
         {
-            if (io.WantCaptureMouse)
+            if (s_ViewportHovered)
+            {
+                handled = false;
+            }
+            else if (io.WantCaptureMouse)
+            {
                 handled = true;
+            }
         }
         else if (event->type == SDL_EVENT_KEY_DOWN || event->type == SDL_EVENT_KEY_UP)
         {
-            if (io.WantCaptureKeyboard)
+            if (s_ViewportFocused)
+            {
+                handled = false;
+            }
+            else if (io.WantCaptureKeyboard)
+            {
                 handled = true;
+            }
         }
 
         if (!handled)

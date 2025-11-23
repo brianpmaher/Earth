@@ -56,17 +56,6 @@ namespace Earth
 
     void Logger::Draw(bool* p_open)
     {
-        ImGuiViewport* viewport = ImGui::GetMainViewport();
-        ImVec2 work_pos = viewport->WorkPos;
-        ImVec2 work_size = viewport->WorkSize;
-        ImVec2 window_pos, window_pos_pivot;
-        window_pos.x = work_pos.x;
-        window_pos.y = work_pos.y + work_size.y;
-        window_pos_pivot.x = 0.0f;
-        window_pos_pivot.y = 1.0f;
-        ImGui::SetNextWindowPos(window_pos, ImGuiCond_FirstUseEver, window_pos_pivot);
-        ImGui::SetNextWindowSize(ImVec2(work_size.x, work_size.y * 0.3f), ImGuiCond_FirstUseEver);
-
         if (!ImGui::Begin("Log", p_open))
         {
             ImGui::End();

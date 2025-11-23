@@ -74,6 +74,7 @@ add_executable(${PROJECT_NAME}
     Source/HTTP.cpp
     Source/Image.cpp
     Source/Main.cpp
+    Source/Framebuffer.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE
