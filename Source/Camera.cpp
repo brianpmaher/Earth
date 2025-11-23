@@ -104,6 +104,13 @@ namespace Earth
         m_Height = height;
     }
 
+    void Camera::SetTargetLonLat(float lon, float lat)
+    {
+        m_TargetLon = lon;
+        m_TargetLat = lat;
+        UpdateViewMatrix();
+    }
+
     glm::mat4 Camera::GetViewMatrix() const
     {
         return m_ViewMatrix;

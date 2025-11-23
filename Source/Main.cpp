@@ -50,6 +50,7 @@ namespace
     std::unique_ptr<Earth::Framebuffer> s_Framebuffer;
     bool s_ShowLog = false;
     bool s_ShowPerformance = true;
+    bool s_ShowLocation = true;
     bool s_ViewportFocused = false;
     bool s_ViewportHovered = false;
     std::vector<float> s_FrameTimes;
@@ -170,10 +171,12 @@ SDL_AppResult SDL_AppIterate(void* appstate)
             ImGuiID dockMain = dockSpaceID;
             ImGuiID dockLog = ImGui::DockBuilderSplitNode(dockMain, ImGuiDir_Down, 0.3f, nullptr, &dockMain);
             ImGuiID dockPerf = ImGui::DockBuilderSplitNode(dockMain, ImGuiDir_Right, 0.2f, nullptr, &dockMain);
+            ImGuiID dockLoc = ImGui::DockBuilderSplitNode(dockPerf, ImGuiDir_Down, 0.5f, nullptr, &dockPerf);
 
             ImGui::DockBuilderDockWindow("Viewport", dockMain);
             ImGui::DockBuilderDockWindow("Log", dockLog);
             ImGui::DockBuilderDockWindow("Performance", dockPerf);
+            ImGui::DockBuilderDockWindow("Location", dockLoc);
             ImGui::DockBuilderFinish(dockSpaceID);
         }
     }
@@ -196,6 +199,9 @@ SDL_AppResult SDL_AppIterate(void* appstate)
             {
             }
             if (ImGui::MenuItem("Performance", nullptr, &s_ShowPerformance))
+            {
+            }
+            if (ImGui::MenuItem("Location", nullptr, &s_ShowLocation))
             {
             }
             ImGui::EndMenu();
@@ -245,6 +251,45 @@ SDL_AppResult SDL_AppIterate(void* appstate)
         }
         ImGui::End();
     }
+
+    if (s_ShowLocation)
+    {
+        if (ImGui::Begin("Location", &s_ShowLocation))
+        {
+            glm::vec3 camPos = s_Camera->GetPosition();
+            ImGui::Text("Camera Position (XYZ):");
+            ImGui::Text("%.3f, %.3f, %.3f", camPos.x, camPos.y, camPos.z);
+
+            float camHeight = glm::length(camPos) - 1.0f;
+            glm::vec3 camNormal = glm::normalize(camPos);
+            float camLon = std::atan2(camNormal.x, camNormal.z);
+            float camLat = std::asin(camNormal.y);
+            ImGui::Text("Camera Position (Lon/Lat/Alt):");
+            ImGui::Text("%.3f, %.3f, %.3f", glm::degrees(camLon), glm::degrees(camLat), camHeight);
+
+            ImGui::Separator();
+
+            glm::vec3 targetPos = s_Camera->GetTargetPosition();
+            ImGui::Text("Look At (XYZ):");
+            ImGui::Text("%.3f, %.3f, %.3f", targetPos.x, targetPos.y, targetPos.z);
+
+            float targetLon, targetLat;
+            s_Camera->GetTargetLonLat(targetLon, targetLat);
+            ImGui::Text("Look At (Lon/Lat):");
+            ImGui::Text("%.3f, %.3f", glm::degrees(targetLon), glm::degrees(targetLat));
+
+            ImGui::Separator();
+
+            static float flyTo[2] = {0.0f, 0.0f};
+            ImGui::InputFloat2("Lon/Lat", flyTo);
+            if (ImGui::Button("Fly To"))
+            {
+                s_Camera->SetTargetLonLat(glm::radians(flyTo[0]), glm::radians(flyTo[1]));
+            }
+        }
+        ImGui::End();
+    }
+
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     if (ImGui::Begin("Viewport"))
     {

@@ -17,6 +17,41 @@ namespace Earth
         glm::mat4 GetViewMatrix() const;
         glm::mat4 GetProjectionMatrix() const;
 
+        glm::vec3 GetPosition() const
+        {
+            return m_Position;
+        }
+        glm::vec3 GetTargetPosition() const
+        {
+            return m_TargetPosition;
+        }
+        void GetTargetLonLat(float& lon, float& lat) const
+        {
+            lon = m_TargetLon;
+            lat = m_TargetLat;
+        }
+        void SetTargetLonLat(float lon, float lat);
+        float GetRange() const
+        {
+            return m_Range;
+        }
+        float GetTargetLon() const
+        {
+            return m_TargetLon;
+        }
+        float GetTargetLat() const
+        {
+            return m_TargetLat;
+        }
+        float GetHeading() const
+        {
+            return m_Heading;
+        }
+        float GetTilt() const
+        {
+            return m_Tilt;
+        }
+
       private:
         void UpdateViewMatrix();
 
