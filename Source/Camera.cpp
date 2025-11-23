@@ -61,23 +61,23 @@ namespace Earth
             if (m_IsDragging)
             {
                 // Pan relative to camera view
-                // Rotate delta by Heading
                 float cosH = cos(m_Heading);
                 float sinH = sin(m_Heading);
 
-                // Screen X (Right) corresponds to East (if Heading 0)
-                // Screen Y (Down) corresponds to South (if Heading 0) -> Lat decreases
-                // Wait, dragging Down usually moves map Down -> Camera moves North -> Lat increases?
-                // Let's stick to: Dragging moves the CAMERA.
-                // Drag Left (dX < 0) -> Camera moves Left (West if H=0) -> Lon decreases.
-                // Drag Up (dY < 0) -> Camera moves Up (North if H=0) -> Lat increases.
+                // Forward Vector (in Lon/Lat space): (-sinH, cosH)
+                // Right Vector (in Lon/Lat space): (cosH, sinH)
 
-                float dX_World = deltaX * cosH - deltaY * sinH;
-                float dY_World = deltaX * sinH + deltaY * cosH;
+                // Drag Right (deltaX > 0) -> Move Camera Left (-Right Vector)
+                // Drag Down (deltaY > 0) -> Move Camera Forward (+Forward Vector)
+                float moveX = -deltaX;
+                float moveY = deltaY;
+
+                float dLon = moveX * cosH + moveY * (-sinH);
+                float dLat = moveX * sinH + moveY * cosH;
 
                 float panSpeed = 0.0025f * m_Range;
-                m_TargetLon -= dX_World * panSpeed;
-                m_TargetLat += dY_World * panSpeed;
+                m_TargetLon += dLon * panSpeed;
+                m_TargetLat += dLat * panSpeed;
 
                 // Clamp Lat
                 m_TargetLat = std::clamp(m_TargetLat, -1.5f, 1.5f);
