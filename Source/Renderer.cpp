@@ -63,6 +63,8 @@ namespace Earth
         m_Shader.SetInt("u_TileY", y);
         m_Shader.SetInt("u_TileZ", z);
         m_Shader.SetBool("u_ShowGrid", showGrid);
+        m_Shader.SetInt("u_ColorTexture", 0);
+        m_Shader.SetInt("u_ElevationTexture", 1);
 
         glBindVertexArray(m_VAO);
         glDrawElements(GL_TRIANGLES, m_IndexCount, GL_UNSIGNED_INT, 0);

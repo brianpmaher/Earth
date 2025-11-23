@@ -35,7 +35,8 @@ namespace
     std::unique_ptr<SDL_Window, WindowDeleter> s_Window;
     SDL_GLContext s_GLContext;
     std::unique_ptr<Earth::Renderer> s_Renderer;
-    std::unique_ptr<Earth::Tileset> s_Tileset;
+    std::unique_ptr<Earth::Tileset> s_SatelliteTileset;
+    std::unique_ptr<Earth::Tileset> s_TerrainTileset;
     std::unique_ptr<Earth::Quadtree> s_Quadtree;
     std::unique_ptr<Earth::Camera> s_Camera;
 }
@@ -75,14 +76,24 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
     {
         try
         {
-            Earth::URL url = std::format("https://api.maptiler.com/tiles/satellite-v2/tiles.json?key={}", mapTilerKey);
-            Earth::TileJSON tileJSON(url);
-            auto tiles = tileJSON.GetJson()["tiles"];
-            if (!tiles.empty())
+            Earth::URL satUrl =
+                std::format("https://api.maptiler.com/tiles/satellite-v2/tiles.json?key={}", mapTilerKey);
+            Earth::TileJSON satTileJSON(satUrl);
+            auto satTiles = satTileJSON.GetJson()["tiles"];
+
+            Earth::URL terrainUrl =
+                std::format("https://api.maptiler.com/tiles/terrain-rgb-v2/tiles.json?key={}", mapTilerKey);
+            Earth::TileJSON terrainTileJSON(terrainUrl);
+            auto terrainTiles = terrainTileJSON.GetJson()["tiles"];
+
+            if (!satTiles.empty() && !terrainTiles.empty())
             {
-                Earth::URL tileUrl = tiles[0].get<std::string>();
-                s_Tileset = std::make_unique<Earth::Tileset>(tileUrl);
-                s_Quadtree = std::make_unique<Earth::Quadtree>(*s_Tileset);
+                Earth::URL satTileUrl = satTiles[0].get<std::string>();
+                Earth::URL terrainTileUrl = terrainTiles[0].get<std::string>();
+
+                s_SatelliteTileset = std::make_unique<Earth::Tileset>(satTileUrl);
+                s_TerrainTileset = std::make_unique<Earth::Tileset>(terrainTileUrl);
+                s_Quadtree = std::make_unique<Earth::Quadtree>(*s_SatelliteTileset, *s_TerrainTileset);
             }
         }
         catch (const std::exception& e)

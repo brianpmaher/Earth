@@ -39,6 +39,12 @@ CPMAddPackage(
     DOWNLOAD_ONLY YES
 )
 
+CPMAddPackage(
+    NAME libwebp
+    GITHUB_REPOSITORY webmproject/libwebp
+    GIT_TAG v1.3.2
+)
+
 find_package(CURL REQUIRED)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
@@ -68,6 +74,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     dotenv
     nlohmann_json::nlohmann_json
     CURL::libcurl
+    webp
     "-framework OpenGL"
 )
 

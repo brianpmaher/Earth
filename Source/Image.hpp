@@ -36,5 +36,6 @@ namespace Earth
         int m_Height = 0;
         int m_Channels = 0;
         unsigned char* m_Data = nullptr;
+        bool m_IsWebP = false;
     };
 }

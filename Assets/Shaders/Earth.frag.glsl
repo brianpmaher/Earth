@@ -2,16 +2,17 @@
 
 in vec2 v_UV;
 in vec2 v_GlobalUV;
+in float v_Elevation;
 out vec4 FragColor;
 
-uniform sampler2D u_Texture;
+uniform sampler2D u_ColorTexture;
 uniform bool u_ShowGrid;
 
 const float PI = 3.14159265359;
 
 void main()
 {
-    vec4 texColor = texture(u_Texture, v_UV);
+    vec4 texColor = texture(u_ColorTexture, v_UV);
 
     if (u_ShowGrid)
     {

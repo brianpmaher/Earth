@@ -31,6 +31,8 @@ namespace Earth::HTTP
             curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
             // Set User-Agent to avoid some servers blocking requests
             curl_easy_setopt(curl, CURLOPT_USERAGENT, "Earth/0.1");
+            // Handle compressed responses
+            curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "");
 
             curl_multi_add_handle(multi_handle, curl);
 
@@ -65,17 +67,20 @@ namespace Earth::HTTP
                         curl_multi_cleanup(multi_handle);
                         throw std::runtime_error(errorMsg);
                     }
-
-                    long response_code;
-                    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
-                    if (response_code != 200)
+                    else
                     {
-                        std::string errorMsg = std::format("HTTP request failed with status code: {}", response_code);
-                        std::println(stderr, "{}", errorMsg);
-                        curl_multi_remove_handle(multi_handle, curl);
-                        curl_easy_cleanup(curl);
-                        curl_multi_cleanup(multi_handle);
-                        throw std::runtime_error(errorMsg);
+                        long response_code;
+                        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+                        if (response_code != 200)
+                        {
+                            std::string errorMsg =
+                                std::format("HTTP request failed with status code: {}", response_code);
+                            std::println(stderr, "{}", errorMsg);
+                            curl_multi_remove_handle(multi_handle, curl);
+                            curl_easy_cleanup(curl);
+                            curl_multi_cleanup(multi_handle);
+                            throw std::runtime_error(errorMsg);
+                        }
                     }
                 }
             }

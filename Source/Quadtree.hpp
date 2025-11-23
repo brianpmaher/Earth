@@ -12,7 +12,7 @@ namespace Earth
     class QuadtreeNode
     {
       public:
-        QuadtreeNode(QuadtreeNode* parent, int x, int y, int z, Tileset& tileset);
+        QuadtreeNode(QuadtreeNode* parent, int x, int y, int z, Tileset& satelliteTileset, Tileset& terrainTileset);
         ~QuadtreeNode();
 
         void Update(const Camera& camera);
@@ -30,9 +30,11 @@ namespace Earth
 
         QuadtreeNode* m_Parent;
         int m_X, m_Y, m_Z;
-        Tileset& m_Tileset;
+        Tileset& m_SatelliteTileset;
+        Tileset& m_TerrainTileset;
 
-        std::shared_ptr<Tile> m_Tile;
+        std::shared_ptr<Tile> m_SatelliteTile;
+        std::shared_ptr<Tile> m_TerrainTile;
         std::vector<std::unique_ptr<QuadtreeNode>> m_Children;
 
         bool m_IsRenderable = false;
@@ -42,13 +44,14 @@ namespace Earth
     class Quadtree
     {
       public:
-        Quadtree(Tileset& tileset);
+        Quadtree(Tileset& satelliteTileset, Tileset& terrainTileset);
 
         void Update(const Camera& camera);
         void Draw(Renderer& renderer, const glm::mat4& viewProjection);
 
       private:
-        Tileset& m_Tileset;
+        Tileset& m_SatelliteTileset;
+        Tileset& m_TerrainTileset;
         std::unique_ptr<QuadtreeNode> m_Root;
     };
 }

@@ -6,10 +6,13 @@
 
 namespace Earth
 {
-    QuadtreeNode::QuadtreeNode(QuadtreeNode* parent, int x, int y, int z, Tileset& tileset)
-        : m_Parent(parent), m_X(x), m_Y(y), m_Z(z), m_Tileset(tileset)
+    QuadtreeNode::QuadtreeNode(QuadtreeNode* parent, int x, int y, int z, Tileset& satelliteTileset,
+                               Tileset& terrainTileset)
+        : m_Parent(parent), m_X(x), m_Y(y), m_Z(z), m_SatelliteTileset(satelliteTileset),
+          m_TerrainTileset(terrainTileset)
     {
-        m_Tile = m_Tileset.LoadTile(x, y, z);
+        m_SatelliteTile = m_SatelliteTileset.LoadTile(x, y, z);
+        m_TerrainTile = m_TerrainTileset.LoadTile(x, y, z);
     }
 
     QuadtreeNode::~QuadtreeNode()
@@ -18,9 +21,13 @@ namespace Earth
 
     void QuadtreeNode::Update(const Camera& camera)
     {
-        if (m_Tile)
+        if (m_SatelliteTile)
         {
-            m_Tile->CheckLoad();
+            m_SatelliteTile->CheckLoad();
+        }
+        if (m_TerrainTile)
+        {
+            m_TerrainTile->CheckLoad();
         }
 
         if (ShouldSplit(camera))
@@ -50,7 +57,8 @@ namespace Earth
             m_AllChildrenRenderable = false;
         }
 
-        m_IsRenderable = m_AllChildrenRenderable || (m_Tile && m_Tile->IsLoaded());
+        m_IsRenderable = m_AllChildrenRenderable ||
+                         (m_SatelliteTile && m_SatelliteTile->IsLoaded() && m_TerrainTile && m_TerrainTile->IsLoaded());
     }
 
     void QuadtreeNode::Draw(Renderer& renderer, const glm::mat4& viewProjection)
@@ -64,10 +72,11 @@ namespace Earth
         }
         else
         {
-            if (m_Tile)
+            if (m_SatelliteTile && m_TerrainTile)
             {
-                m_Tile->Bind(0);
-                if (m_Tile->IsLoaded())
+                m_SatelliteTile->Bind(0);
+                m_TerrainTile->Bind(1);
+                if (m_SatelliteTile->IsLoaded() && m_TerrainTile->IsLoaded())
                 {
                     bool showGrid = false;
                     renderer.DrawTile(viewProjection, m_X, m_Y, m_Z, showGrid);
@@ -82,10 +91,14 @@ namespace Earth
         int nextX = m_X * 2;
         int nextY = m_Y * 2;
 
-        m_Children.push_back(std::make_unique<QuadtreeNode>(this, nextX, nextY, nextZ, m_Tileset));
-        m_Children.push_back(std::make_unique<QuadtreeNode>(this, nextX + 1, nextY, nextZ, m_Tileset));
-        m_Children.push_back(std::make_unique<QuadtreeNode>(this, nextX, nextY + 1, nextZ, m_Tileset));
-        m_Children.push_back(std::make_unique<QuadtreeNode>(this, nextX + 1, nextY + 1, nextZ, m_Tileset));
+        m_Children.push_back(
+            std::make_unique<QuadtreeNode>(this, nextX, nextY, nextZ, m_SatelliteTileset, m_TerrainTileset));
+        m_Children.push_back(
+            std::make_unique<QuadtreeNode>(this, nextX + 1, nextY, nextZ, m_SatelliteTileset, m_TerrainTileset));
+        m_Children.push_back(
+            std::make_unique<QuadtreeNode>(this, nextX, nextY + 1, nextZ, m_SatelliteTileset, m_TerrainTileset));
+        m_Children.push_back(
+            std::make_unique<QuadtreeNode>(this, nextX + 1, nextY + 1, nextZ, m_SatelliteTileset, m_TerrainTileset));
     }
 
     void QuadtreeNode::Merge()
@@ -123,9 +136,10 @@ namespace Earth
         return minDist < 2.5f * scale;
     }
 
-    Quadtree::Quadtree(Tileset& tileset) : m_Tileset(tileset)
+    Quadtree::Quadtree(Tileset& satelliteTileset, Tileset& terrainTileset)
+        : m_SatelliteTileset(satelliteTileset), m_TerrainTileset(terrainTileset)
     {
-        m_Root = std::make_unique<QuadtreeNode>(nullptr, 0, 0, 0, m_Tileset);
+        m_Root = std::make_unique<QuadtreeNode>(nullptr, 0, 0, 0, m_SatelliteTileset, m_TerrainTileset);
     }
 
     void Quadtree::Update(const Camera& camera)
