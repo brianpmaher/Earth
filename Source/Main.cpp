@@ -91,8 +91,8 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
                 Earth::URL satTileUrl = satTiles[0].get<std::string>();
                 Earth::URL terrainTileUrl = terrainTiles[0].get<std::string>();
 
-                s_SatelliteTileset = std::make_unique<Earth::Tileset>(satTileUrl);
-                s_TerrainTileset = std::make_unique<Earth::Tileset>(terrainTileUrl);
+                s_SatelliteTileset = std::make_unique<Earth::Tileset>(satTileUrl, true);
+                s_TerrainTileset = std::make_unique<Earth::Tileset>(terrainTileUrl, false);
                 s_Quadtree = std::make_unique<Earth::Quadtree>(*s_SatelliteTileset, *s_TerrainTileset);
             }
         }

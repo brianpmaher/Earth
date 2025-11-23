@@ -10,7 +10,8 @@ namespace Earth
 {
     static Logger s_Logger("Tileset");
 
-    Tile::Tile(int x, int y, int z, const URL& urlTemplate) : X(x), Y(y), Z(z)
+    Tile::Tile(int x, int y, int z, const URL& urlTemplate, bool generateMipmaps)
+        : X(x), Y(y), Z(z), m_GenerateMipmaps(generateMipmaps)
     {
         std::string url = urlTemplate.Get();
         // Simple replacement for now. In a real app, use a proper template engine or regex.
@@ -84,12 +85,21 @@ namespace Earth
 
                     glTexImage2D(GL_TEXTURE_2D, 0, format, image.GetWidth(), image.GetHeight(), 0, format,
                                  GL_UNSIGNED_BYTE, image.GetData());
-                    // glGenerateMipmap(GL_TEXTURE_2D); // Mipmaps break elevation data
+
+                    if (m_GenerateMipmaps)
+                    {
+                        glGenerateMipmap(GL_TEXTURE_2D);
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                    }
+                    else
+                    {
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                    }
 
                     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
                     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
                     s_Logger.Info("Loaded tile texture: {} ({}x{})", TextureID, image.GetWidth(), image.GetHeight());
                 }
@@ -97,12 +107,13 @@ namespace Earth
         }
     }
 
-    Tileset::Tileset(const URL& urlTemplate) : m_UrlTemplate(urlTemplate)
+    Tileset::Tileset(const URL& urlTemplate, bool generateMipmaps)
+        : m_UrlTemplate(urlTemplate), m_GenerateMipmaps(generateMipmaps)
     {
     }
 
     std::shared_ptr<Tile> Tileset::LoadTile(int x, int y, int z)
     {
-        return std::make_shared<Tile>(x, y, z, m_UrlTemplate);
+        return std::make_shared<Tile>(x, y, z, m_UrlTemplate, m_GenerateMipmaps);
     }
 }
