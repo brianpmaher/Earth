@@ -51,6 +51,12 @@ CPMAddPackage(
     GIT_TAG docking
 )
 
+CPMAddPackage(
+    NAME spdlog
+    GITHUB_REPOSITORY gabime/spdlog
+    GIT_TAG v1.14.1
+)
+
 find_package(CURL REQUIRED)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
@@ -93,6 +99,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     nlohmann_json::nlohmann_json
     CURL::libcurl
     webp
+    spdlog::spdlog
     "-framework OpenGL"
 )
 

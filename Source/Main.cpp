@@ -21,6 +21,7 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <format>
 #include <memory>
 #include <print>
 
@@ -43,6 +44,7 @@ namespace
     std::unique_ptr<Earth::Tileset> s_TerrainTileset;
     std::unique_ptr<Earth::Quadtree> s_Quadtree;
     std::unique_ptr<Earth::Camera> s_Camera;
+    bool s_ShowLog = false;
 }
 
 SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
@@ -124,6 +126,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
     (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;     // Enable Docking
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
@@ -142,6 +145,8 @@ SDL_AppResult SDL_AppIterate(void* appstate)
     ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
 
+    ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
+
     if (ImGui::BeginMainMenuBar())
     {
         if (ImGui::BeginMenu("File"))
@@ -154,7 +159,19 @@ SDL_AppResult SDL_AppIterate(void* appstate)
             }
             ImGui::EndMenu();
         }
+        if (ImGui::BeginMenu("View"))
+        {
+            if (ImGui::MenuItem("Log", nullptr, &s_ShowLog))
+            {
+            }
+            ImGui::EndMenu();
+        }
         ImGui::EndMainMenuBar();
+    }
+
+    if (s_ShowLog)
+    {
+        Earth::Logger::Draw(&s_ShowLog);
     }
 
     int w, h;
@@ -190,7 +207,24 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 
     if (s_Camera)
     {
-        s_Camera->HandleEvent(*event);
+        ImGuiIO& io = ImGui::GetIO();
+        bool handled = false;
+        if (event->type == SDL_EVENT_MOUSE_BUTTON_DOWN || event->type == SDL_EVENT_MOUSE_BUTTON_UP ||
+            event->type == SDL_EVENT_MOUSE_MOTION || event->type == SDL_EVENT_MOUSE_WHEEL)
+        {
+            if (io.WantCaptureMouse)
+                handled = true;
+        }
+        else if (event->type == SDL_EVENT_KEY_DOWN || event->type == SDL_EVENT_KEY_UP)
+        {
+            if (io.WantCaptureKeyboard)
+                handled = true;
+        }
+
+        if (!handled)
+        {
+            s_Camera->HandleEvent(*event);
+        }
     }
 
     if (event->type == SDL_EVENT_QUIT)

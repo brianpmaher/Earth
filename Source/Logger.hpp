@@ -1,60 +1,52 @@
 #pragma once
 
-#include <format>
-#include <string>
+#include <spdlog/fmt/ostr.h>
+#include <spdlog/spdlog.h>
+
+#include <memory>
+#include <string_view>
 
 namespace Earth
 {
     class Logger
     {
       public:
-        enum class Level
-        {
-            Debug,
-            Info,
-            Warn,
-            Error,
-            Fatal
-        };
+        static void Init();
+        static void Draw(bool* p_open = nullptr);
 
-        static void SetGlobalLevel(Level level);
-
-        Logger(std::string_view name, Level level = Level::Info);
+        Logger(std::string_view name);
 
         template <typename... Args>
-        void Debug(std::string_view format, Args&&... args)
+        void Debug(spdlog::format_string_t<Args...> fmt, Args&&... args)
         {
-            Log("Debug", std::vformat(format, std::make_format_args(args...)));
+            m_Logger->debug(fmt, std::forward<Args>(args)...);
         }
 
         template <typename... Args>
-        void Info(std::string_view format, Args&&... args)
+        void Info(spdlog::format_string_t<Args...> fmt, Args&&... args)
         {
-            Log("Info", std::vformat(format, std::make_format_args(args...)));
+            m_Logger->info(fmt, std::forward<Args>(args)...);
         }
 
         template <typename... Args>
-        void Warn(std::string_view format, Args&&... args)
+        void Warn(spdlog::format_string_t<Args...> fmt, Args&&... args)
         {
-            Log("Warn", std::vformat(format, std::make_format_args(args...)));
+            m_Logger->warn(fmt, std::forward<Args>(args)...);
         }
 
         template <typename... Args>
-        void Error(std::string_view format, Args&&... args)
+        void Error(spdlog::format_string_t<Args...> fmt, Args&&... args)
         {
-            Log("Error", std::vformat(format, std::make_format_args(args...)));
+            m_Logger->error(fmt, std::forward<Args>(args)...);
         }
 
         template <typename... Args>
-        void Fatal(std::string_view format, Args&&... args)
+        void Fatal(spdlog::format_string_t<Args...> fmt, Args&&... args)
         {
-            Log("Fatal", std::vformat(format, std::make_format_args(args...)));
+            m_Logger->critical(fmt, std::forward<Args>(args)...);
         }
 
       private:
-        std::string m_Name;
-        Level m_Level;
-
-        void Log(std::string_view level, std::string_view message);
+        std::shared_ptr<spdlog::logger> m_Logger;
     };
 }
