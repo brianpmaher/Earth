@@ -30,7 +30,7 @@ namespace Earth::Mercator
         return glm::vec3(x, y, z);
     }
 
-    Mesh GenerateSphereMesh(int resolution)
+    Mesh GeneratePlaneMesh(int resolution)
     {
         Mesh mesh;
 
@@ -45,7 +45,7 @@ namespace Earth::Mercator
 
                 Vertex v;
                 v.UV = uv;
-                v.Position = UVToPosition(uv, 1.0f);
+                v.Position = glm::vec3(uv.x, uv.y, 0.0f); // Flat plane
 
                 mesh.Vertices.push_back(v);
             }

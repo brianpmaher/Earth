@@ -1,6 +1,7 @@
 #include "Camera.hpp"
 #include "Logger.hpp"
 #include "Mercator.hpp"
+#include "Quadtree.hpp"
 #include "Renderer.hpp"
 #include "TileJSON.hpp"
 #include "Tileset.hpp"
@@ -23,10 +24,19 @@ namespace
 {
     Earth::Logger s_Logger("Earth");
 
-    SDL_Window* s_Window;
+    struct WindowDeleter
+    {
+        void operator()(SDL_Window* window) const
+        {
+            SDL_DestroyWindow(window);
+        }
+    };
+
+    std::unique_ptr<SDL_Window, WindowDeleter> s_Window;
     SDL_GLContext s_GLContext;
     std::unique_ptr<Earth::Renderer> s_Renderer;
-    std::shared_ptr<Earth::Tile> s_Tile;
+    std::unique_ptr<Earth::Tileset> s_Tileset;
+    std::unique_ptr<Earth::Quadtree> s_Quadtree;
     std::unique_ptr<Earth::Camera> s_Camera;
 }
 
@@ -44,14 +54,14 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
-    s_Window = SDL_CreateWindow("Earth", 1280, 720, SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
+    s_Window.reset(SDL_CreateWindow("Earth", 1280, 720, SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL));
     if (!s_Window)
     {
         s_Logger.Error("Failed to create SDL Window: {}", SDL_GetError());
         return SDL_APP_FAILURE;
     }
 
-    s_GLContext = SDL_GL_CreateContext(s_Window);
+    s_GLContext = SDL_GL_CreateContext(s_Window.get());
     if (!s_GLContext)
     {
         s_Logger.Error("Failed to create OpenGL context: {}", SDL_GetError());
@@ -71,8 +81,8 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
             if (!tiles.empty())
             {
                 Earth::URL tileUrl = tiles[0].get<std::string>();
-                Earth::Tileset tileset(tileUrl);
-                s_Tile = tileset.LoadTile(0, 0, 0);
+                s_Tileset = std::make_unique<Earth::Tileset>(tileUrl);
+                s_Quadtree = std::make_unique<Earth::Quadtree>(*s_Tileset);
             }
         }
         catch (const std::exception& e)
@@ -88,9 +98,9 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
 
-    // Generate a sphere mesh with 64x64 resolution
-    Earth::Mesh sphereMesh = Earth::Mercator::GenerateSphereMesh(64);
-    s_Renderer->UploadMesh(sphereMesh);
+    // Generate a plane mesh with 64x64 resolution (reused for all tiles)
+    Earth::Mesh planeMesh = Earth::Mercator::GeneratePlaneMesh(64);
+    s_Renderer->UploadMesh(planeMesh);
 
     return SDL_APP_CONTINUE;
 }
@@ -98,26 +108,25 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 SDL_AppResult SDL_AppIterate(void* appstate)
 {
     int w, h;
-    SDL_GetWindowSize(s_Window, &w, &h);
+    SDL_GetWindowSize(s_Window.get(), &w, &h);
     glViewport(0, 0, w, h);
     s_Camera->Resize((float)w, (float)h);
 
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    if (s_Tile)
+    s_Camera->Update(0.016f);
+
+    if (s_Quadtree)
     {
-        s_Tile->Bind(0);
+        s_Quadtree->Update(*s_Camera);
+
+        glm::mat4 projection = s_Camera->GetProjectionMatrix();
+        glm::mat4 view = s_Camera->GetViewMatrix();
+        s_Quadtree->Draw(*s_Renderer, projection * view);
     }
 
-    s_Camera->Update(0.016f); // Fixed time step for now
-
-    glm::mat4 projection = s_Camera->GetProjectionMatrix();
-    glm::mat4 view = s_Camera->GetViewMatrix();
-
-    s_Renderer->Draw(projection * view, true);
-
-    SDL_GL_SwapWindow(s_Window);
+    SDL_GL_SwapWindow(s_Window.get());
 
     return SDL_APP_CONTINUE;
 }
@@ -149,5 +158,5 @@ void SDL_AppQuit(void* appstate, SDL_AppResult result)
 {
     SDL_GL_DestroyContext(s_GLContext);
 
-    SDL_DestroyWindow(s_Window);
+    s_Window.reset();
 }

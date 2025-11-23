@@ -49,6 +49,7 @@ add_executable(${PROJECT_NAME}
     Source/Renderer.cpp
     Source/Shader.cpp
     Source/Camera.cpp
+    Source/Quadtree.cpp
     Source/Mercator.cpp
     Source/TileJSON.cpp
     Source/Tileset.cpp

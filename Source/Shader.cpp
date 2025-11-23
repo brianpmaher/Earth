@@ -93,4 +93,9 @@ namespace Earth
     {
         glUniform1i(glGetUniformLocation(m_RendererID, name.c_str()), (int)value);
     }
+
+    void Shader::SetInt(const std::string& name, int value) const
+    {
+        glUniform1i(glGetUniformLocation(m_RendererID, name.c_str()), value);
+    }
 }

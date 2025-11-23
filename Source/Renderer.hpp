@@ -15,7 +15,7 @@ namespace Earth
 
         void UploadMesh(const Mesh& mesh);
 
-        void Draw(const glm::mat4& viewProjection, bool showGrid = false);
+        void DrawTile(const glm::mat4& viewProjection, int x, int y, int z, bool showGrid = false);
 
       private:
         Shader m_Shader;

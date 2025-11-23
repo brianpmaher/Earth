@@ -1,6 +1,7 @@
 #version 410 core
 
 in vec2 v_UV;
+in vec2 v_GlobalUV;
 out vec4 FragColor;
 
 uniform sampler2D u_Texture;
@@ -14,10 +15,10 @@ void main()
 
     if (u_ShowGrid)
     {
-        // Calculate Longitude and Latitude
-        float longitude = -((v_UV.x * 2.0 * PI) - PI);
+        // Calculate Longitude and Latitude using Global UV
+        float longitude = -((v_GlobalUV.x * 2.0 * PI) - PI);
         
-        float mercatorY = PI * (1.0 - 2.0 * v_UV.y);
+        float mercatorY = PI * (1.0 - 2.0 * v_GlobalUV.y);
         float latitude = 2.0 * atan(exp(mercatorY)) - (PI / 2.0);
         
         // Convert to degrees
