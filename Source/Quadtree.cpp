@@ -80,7 +80,7 @@ namespace Earth
 
     bool QuadtreeNode::ShouldSplit(const Camera& camera) const
     {
-        if (m_Z >= 5)
+        if (m_Z >= 21)
             return false;
 
         // Calculate center of tile in 3D space

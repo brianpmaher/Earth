@@ -19,8 +19,10 @@ namespace Earth
     {
         if (event.type == SDL_EVENT_MOUSE_WHEEL)
         {
-            m_Distance -= event.wheel.y * 0.2f;
-            m_Distance = std::max(1.1f, std::min(m_Distance, 10.0f));
+            float distanceToSurface = m_Distance - 1.0f;
+            float zoomSpeed = std::max(0.00001f, distanceToSurface * 0.1f);
+            m_Distance -= event.wheel.y * zoomSpeed;
+            m_Distance = std::max(1.00001f, std::min(m_Distance, 10.0f));
             UpdateViewMatrix();
         }
         else if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
@@ -74,7 +76,8 @@ namespace Earth
 
     glm::mat4 Camera::GetProjectionMatrix() const
     {
-        return glm::perspective(glm::radians(45.0f), m_Width / m_Height, 0.1f, 100.0f);
+        float nearPlane = std::max(0.000001f, (m_Distance - 1.0f) * 0.1f);
+        return glm::perspective(glm::radians(45.0f), m_Width / m_Height, nearPlane, 100.0f);
     }
 
     void Camera::UpdateViewMatrix()
