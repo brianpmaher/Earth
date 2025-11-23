@@ -57,6 +57,13 @@ CPMAddPackage(
     GIT_TAG v1.14.1
 )
 
+CPMAddPackage(
+    NAME imgui_plot
+    GITHUB_REPOSITORY soulthreads/imgui-plot
+    GIT_TAG master
+    DOWNLOAD_ONLY YES
+)
+
 find_package(CURL REQUIRED)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
@@ -81,6 +88,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${stb_SOURCE_DIR}
     ${imgui_SOURCE_DIR}
     ${imgui_SOURCE_DIR}/backends
+    ${imgui_plot_SOURCE_DIR}/include
 )
 
 target_sources(${PROJECT_NAME} PRIVATE
@@ -91,6 +99,7 @@ target_sources(${PROJECT_NAME} PRIVATE
     ${imgui_SOURCE_DIR}/imgui_widgets.cpp
     ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl3.cpp
     ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
+    ${imgui_plot_SOURCE_DIR}/src/imgui_plot.cpp
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE

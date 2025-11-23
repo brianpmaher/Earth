@@ -11,6 +11,7 @@
 #include "backends/imgui_impl_sdl3.h"
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "imgui_plot.h"
 
 #include <dotenv.h>
 
@@ -48,8 +49,10 @@ namespace
     std::unique_ptr<Earth::Camera> s_Camera;
     std::unique_ptr<Earth::Framebuffer> s_Framebuffer;
     bool s_ShowLog = false;
+    bool s_ShowPerformance = true;
     bool s_ViewportFocused = false;
     bool s_ViewportHovered = false;
+    std::vector<float> s_FrameTimes;
 }
 
 SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
@@ -166,9 +169,11 @@ SDL_AppResult SDL_AppIterate(void* appstate)
 
             ImGuiID dockMain = dockSpaceID;
             ImGuiID dockLog = ImGui::DockBuilderSplitNode(dockMain, ImGuiDir_Down, 0.3f, nullptr, &dockMain);
+            ImGuiID dockPerf = ImGui::DockBuilderSplitNode(dockMain, ImGuiDir_Right, 0.2f, nullptr, &dockMain);
 
             ImGui::DockBuilderDockWindow("Viewport", dockMain);
             ImGui::DockBuilderDockWindow("Log", dockLog);
+            ImGui::DockBuilderDockWindow("Performance", dockPerf);
             ImGui::DockBuilderFinish(dockSpaceID);
         }
     }
@@ -190,6 +195,9 @@ SDL_AppResult SDL_AppIterate(void* appstate)
             if (ImGui::MenuItem("Log", nullptr, &s_ShowLog))
             {
             }
+            if (ImGui::MenuItem("Performance", nullptr, &s_ShowPerformance))
+            {
+            }
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -200,6 +208,43 @@ SDL_AppResult SDL_AppIterate(void* appstate)
         Earth::Logger::Draw(&s_ShowLog);
     }
 
+    static float s_TimeAccumulator = 0.0f;
+
+    s_TimeAccumulator += ImGui::GetIO().DeltaTime;
+
+    if (s_TimeAccumulator >= 1.0f)
+    {
+        if (s_FrameTimes.size() >= 60)
+            s_FrameTimes.erase(s_FrameTimes.begin());
+        s_FrameTimes.push_back(ImGui::GetIO().Framerate);
+
+        s_TimeAccumulator = 0.0f;
+    }
+
+    if (s_ShowPerformance)
+    {
+        if (ImGui::Begin("Performance", &s_ShowPerformance))
+        {
+            float framerate = ImGui::GetIO().Framerate;
+            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / framerate, framerate);
+
+            ImGui::PlotConfig conf;
+            conf.values.xs = nullptr;
+            conf.values.ys = s_FrameTimes.data();
+            conf.values.count = (int)s_FrameTimes.size();
+            conf.scale.min = 0;
+            conf.scale.max = 144;
+            conf.tooltip.show = true;
+            conf.tooltip.format = "%.2f FPS";
+            conf.grid_x.show = false;
+            conf.grid_y.show = true;
+            conf.frame_size = ImVec2(ImGui::GetContentRegionAvail().x, 200);
+            conf.line_thickness = 2.f;
+
+            ImGui::Plot("FPS", conf);
+        }
+        ImGui::End();
+    }
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     if (ImGui::Begin("Viewport"))
     {
