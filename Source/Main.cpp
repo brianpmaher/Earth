@@ -6,6 +6,10 @@
 #include "TileJSON.hpp"
 #include "Tileset.hpp"
 
+#include "backends/imgui_impl_opengl3.h"
+#include "backends/imgui_impl_sdl3.h"
+#include "imgui.h"
+
 #include <dotenv.h>
 
 #include <SDL3/SDL_events.h>
@@ -113,11 +117,46 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
     Earth::Mesh planeMesh = Earth::Mercator::GeneratePlaneMesh(64);
     s_Renderer->UploadMesh(planeMesh);
 
+    // Setup Dear ImGui context
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    (void)io;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
+
+    // Setup Dear ImGui style
+    ImGui::StyleColorsDark();
+
+    // Setup Platform/Renderer backends
+    ImGui_ImplSDL3_InitForOpenGL(s_Window.get(), s_GLContext);
+    ImGui_ImplOpenGL3_Init("#version 410");
+
     return SDL_APP_CONTINUE;
 }
 
 SDL_AppResult SDL_AppIterate(void* appstate)
 {
+    // Start the Dear ImGui frame
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplSDL3_NewFrame();
+    ImGui::NewFrame();
+
+    if (ImGui::BeginMainMenuBar())
+    {
+        if (ImGui::BeginMenu("File"))
+        {
+            if (ImGui::MenuItem("Exit"))
+            {
+                SDL_Event quit_event;
+                quit_event.type = SDL_EVENT_QUIT;
+                SDL_PushEvent(&quit_event);
+            }
+            ImGui::EndMenu();
+        }
+        ImGui::EndMainMenuBar();
+    }
+
     int w, h;
     SDL_GetWindowSize(s_Window.get(), &w, &h);
     glViewport(0, 0, w, h);
@@ -137,6 +176,9 @@ SDL_AppResult SDL_AppIterate(void* appstate)
         s_Quadtree->Draw(*s_Renderer, projection * view);
     }
 
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
     SDL_GL_SwapWindow(s_Window.get());
 
     return SDL_APP_CONTINUE;
@@ -144,6 +186,8 @@ SDL_AppResult SDL_AppIterate(void* appstate)
 
 SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 {
+    ImGui_ImplSDL3_ProcessEvent(event);
+
     if (s_Camera)
     {
         s_Camera->HandleEvent(*event);
@@ -167,6 +211,10 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 
 void SDL_AppQuit(void* appstate, SDL_AppResult result)
 {
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplSDL3_Shutdown();
+    ImGui::DestroyContext();
+
     SDL_GL_DestroyContext(s_GLContext);
 
     s_Window.reset();

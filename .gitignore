@@ -6,3 +6,6 @@ Build/
 
 # Environment variable files
 .env
+
+# ImGUI files
+imgui.ini

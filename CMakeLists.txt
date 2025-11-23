@@ -45,6 +45,12 @@ CPMAddPackage(
     GIT_TAG v1.3.2
 )
 
+CPMAddPackage(
+    NAME imgui
+    GITHUB_REPOSITORY ocornut/imgui
+    GIT_TAG docking
+)
+
 find_package(CURL REQUIRED)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
@@ -66,6 +72,18 @@ add_executable(${PROJECT_NAME}
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${stb_SOURCE_DIR}
+    ${imgui_SOURCE_DIR}
+    ${imgui_SOURCE_DIR}/backends
+)
+
+target_sources(${PROJECT_NAME} PRIVATE
+    ${imgui_SOURCE_DIR}/imgui.cpp
+    ${imgui_SOURCE_DIR}/imgui_demo.cpp
+    ${imgui_SOURCE_DIR}/imgui_draw.cpp
+    ${imgui_SOURCE_DIR}/imgui_tables.cpp
+    ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl3.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
