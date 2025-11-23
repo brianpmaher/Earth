@@ -46,7 +46,10 @@ namespace Earth
             if (m_Tile)
             {
                 m_Tile->Bind(0);
-                renderer.DrawTile(viewProjection, m_X, m_Y, m_Z, true);
+                if (m_Tile->IsLoaded())
+                {
+                    renderer.DrawTile(viewProjection, m_X, m_Y, m_Z, true);
+                }
             }
         }
         else

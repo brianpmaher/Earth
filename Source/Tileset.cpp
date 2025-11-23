@@ -31,36 +31,18 @@ namespace Earth
 
         s_Logger.Info("Fetching tile: {}", url);
 
-        try
-        {
-            std::string imageData = HTTP::Fetch(url);
-            Image image(imageData);
-
-            if (image.GetData())
+        m_Future = std::async(std::launch::async, [url]() {
+            try
             {
-                glGenTextures(1, &TextureID);
-                glBindTexture(GL_TEXTURE_2D, TextureID);
-
-                GLenum format = GL_RGB;
-                if (image.GetChannels() == 4)
-                    format = GL_RGBA;
-
-                glTexImage2D(GL_TEXTURE_2D, 0, format, image.GetWidth(), image.GetHeight(), 0, format, GL_UNSIGNED_BYTE,
-                             image.GetData());
-                glGenerateMipmap(GL_TEXTURE_2D);
-
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-                s_Logger.Info("Loaded tile texture: {} ({}x{})", TextureID, image.GetWidth(), image.GetHeight());
+                std::string imageData = HTTP::Fetch(url);
+                return Image(imageData);
             }
-        }
-        catch (const std::exception& e)
-        {
-            s_Logger.Error("Failed to fetch tile: {}", e.what());
-        }
+            catch (const std::exception& e)
+            {
+                s_Logger.Error("Failed to fetch tile: {}", e.what());
+                return Image();
+            }
+        });
     }
 
     Tile::~Tile()
@@ -71,10 +53,48 @@ namespace Earth
         }
     }
 
-    void Tile::Bind(int slot) const
+    void Tile::Bind(int slot)
     {
-        glActiveTexture(GL_TEXTURE0 + slot);
-        glBindTexture(GL_TEXTURE_2D, TextureID);
+        CheckLoad();
+
+        if (TextureID)
+        {
+            glActiveTexture(GL_TEXTURE0 + slot);
+            glBindTexture(GL_TEXTURE_2D, TextureID);
+        }
+    }
+
+    void Tile::CheckLoad()
+    {
+        if (m_IsLoading && m_Future.valid())
+        {
+            if (m_Future.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
+            {
+                Image image = m_Future.get();
+                m_IsLoading = false;
+
+                if (image.GetData())
+                {
+                    glGenTextures(1, &TextureID);
+                    glBindTexture(GL_TEXTURE_2D, TextureID);
+
+                    GLenum format = GL_RGB;
+                    if (image.GetChannels() == 4)
+                        format = GL_RGBA;
+
+                    glTexImage2D(GL_TEXTURE_2D, 0, format, image.GetWidth(), image.GetHeight(), 0, format,
+                                 GL_UNSIGNED_BYTE, image.GetData());
+                    glGenerateMipmap(GL_TEXTURE_2D);
+
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+                    s_Logger.Info("Loaded tile texture: {} ({}x{})", TextureID, image.GetWidth(), image.GetHeight());
+                }
+            }
+        }
     }
 
     Tileset::Tileset(const URL& urlTemplate) : m_UrlTemplate(urlTemplate)

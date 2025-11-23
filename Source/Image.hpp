@@ -7,7 +7,10 @@ namespace Earth
     class Image
     {
       public:
+        Image() = default;
         Image(const std::string& data, bool flipVertically = false);
+        Image(Image&& other) noexcept;
+        Image& operator=(Image&& other) noexcept;
 
         ~Image();
 
