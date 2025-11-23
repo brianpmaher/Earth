@@ -1,3 +1,4 @@
+#include "Camera.hpp"
 #include "Logger.hpp"
 #include "Mercator.hpp"
 #include "Renderer.hpp"
@@ -26,6 +27,7 @@ namespace
     SDL_GLContext s_GLContext;
     std::unique_ptr<Earth::Renderer> s_Renderer;
     std::shared_ptr<Earth::Tile> s_Tile;
+    std::unique_ptr<Earth::Camera> s_Camera;
 }
 
 SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
@@ -57,6 +59,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
     }
 
     s_Renderer = std::make_unique<Earth::Renderer>();
+    s_Camera = std::make_unique<Earth::Camera>(1280.0f, 720.0f);
 
     if (const char* mapTilerKey = std::getenv("MAPTILER_KEY"))
     {
@@ -97,6 +100,7 @@ SDL_AppResult SDL_AppIterate(void* appstate)
     int w, h;
     SDL_GetWindowSize(s_Window, &w, &h);
     glViewport(0, 0, w, h);
+    s_Camera->Resize((float)w, (float)h);
 
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -106,16 +110,10 @@ SDL_AppResult SDL_AppIterate(void* appstate)
         s_Tile->Bind(0);
     }
 
-    // Simple Camera
-    float aspectRatio = (float)w / (float)h;
-    glm::mat4 projection = glm::perspective(glm::radians(45.0f), aspectRatio, 0.1f, 100.0f);
+    s_Camera->Update(0.016f); // Fixed time step for now
 
-    // Rotate around the Y axis over time
-    float time = (float)SDL_GetTicks() / 1000.0f;
-    float camX = sin(time) * 3.0f;
-    float camZ = cos(time) * 3.0f;
-
-    glm::mat4 view = glm::lookAt(glm::vec3(camX, 0.0f, camZ), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::mat4 projection = s_Camera->GetProjectionMatrix();
+    glm::mat4 view = s_Camera->GetViewMatrix();
 
     s_Renderer->Draw(projection * view, true);
 
@@ -126,6 +124,11 @@ SDL_AppResult SDL_AppIterate(void* appstate)
 
 SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 {
+    if (s_Camera)
+    {
+        s_Camera->HandleEvent(*event);
+    }
+
     if (event->type == SDL_EVENT_QUIT)
     {
         return SDL_APP_SUCCESS;
