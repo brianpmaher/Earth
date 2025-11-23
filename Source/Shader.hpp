@@ -16,6 +16,8 @@ namespace Earth
 
         void Unbind() const;
 
+        void SetBool(const std::string& name, bool value) const;
+
         GLuint GetRendererID() const
         {
             return m_RendererID;

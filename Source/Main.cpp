@@ -1,6 +1,8 @@
 #include "Logger.hpp"
 #include "Mercator.hpp"
 #include "Renderer.hpp"
+#include "TileJSON.hpp"
+#include "Tileset.hpp"
 
 #include <dotenv.h>
 
@@ -23,6 +25,7 @@ namespace
     SDL_Window* s_Window;
     SDL_GLContext s_GLContext;
     std::unique_ptr<Earth::Renderer> s_Renderer;
+    std::shared_ptr<Earth::Tile> s_Tile;
 }
 
 SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
@@ -55,6 +58,30 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 
     s_Renderer = std::make_unique<Earth::Renderer>();
 
+    if (const char* mapTilerKey = std::getenv("MAPTILER_KEY"))
+    {
+        try
+        {
+            Earth::URL url = std::format("https://api.maptiler.com/tiles/satellite-v2/tiles.json?key={}", mapTilerKey);
+            Earth::TileJSON tileJSON(url);
+            auto tiles = tileJSON.GetJson()["tiles"];
+            if (!tiles.empty())
+            {
+                Earth::URL tileUrl = tiles[0].get<std::string>();
+                Earth::Tileset tileset(tileUrl);
+                s_Tile = tileset.LoadTile(0, 0, 0);
+            }
+        }
+        catch (const std::exception& e)
+        {
+            s_Logger.Error("Failed to fetch tileset: {}", e.what());
+        }
+    }
+    else
+    {
+        s_Logger.Error("MAPTILER_KEY not set in .env");
+    }
+
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
 
@@ -74,6 +101,11 @@ SDL_AppResult SDL_AppIterate(void* appstate)
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    if (s_Tile)
+    {
+        s_Tile->Bind(0);
+    }
+
     // Simple Camera
     float aspectRatio = (float)w / (float)h;
     glm::mat4 projection = glm::perspective(glm::radians(45.0f), aspectRatio, 0.1f, 100.0f);
@@ -85,7 +117,7 @@ SDL_AppResult SDL_AppIterate(void* appstate)
 
     glm::mat4 view = glm::lookAt(glm::vec3(camX, 0.0f, camZ), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
-    s_Renderer->Draw(projection * view);
+    s_Renderer->Draw(projection * view, true);
 
     SDL_GL_SwapWindow(s_Window);
 

@@ -88,4 +88,9 @@ namespace Earth
     {
         glUseProgram(0);
     }
+
+    void Shader::SetBool(const std::string& name, bool value) const
+    {
+        glUniform1i(glGetUniformLocation(m_RendererID, name.c_str()), (int)value);
+    }
 }

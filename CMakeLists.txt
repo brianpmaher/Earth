@@ -32,6 +32,13 @@ CPMAddPackage(
     GIT_TAG v3.12.0
 )
 
+CPMAddPackage(
+    NAME stb
+    GITHUB_REPOSITORY nothings/stb
+    GIT_TAG master
+    DOWNLOAD_ONLY YES
+)
+
 find_package(CURL REQUIRED)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
@@ -42,13 +49,23 @@ add_executable(${PROJECT_NAME}
     Source/Renderer.cpp
     Source/Shader.cpp
     Source/Mercator.cpp
+    Source/TileJSON.cpp
+    Source/Tileset.cpp
+    Source/HTTP.cpp
+    Source/Image.cpp
     Source/Main.cpp
+)
+
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${stb_SOURCE_DIR}
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     SDL3::SDL3
     glm::glm
     dotenv
+    nlohmann_json::nlohmann_json
+    CURL::libcurl
     "-framework OpenGL"
 )
 

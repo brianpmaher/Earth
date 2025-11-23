@@ -11,7 +11,8 @@ namespace Earth::Mercator
         const float PI = glm::pi<float>();
 
         // Map U to Longitude [-PI, PI]
-        float longitude = (uv.x * 2.0f * PI) - PI;
+        // Invert longitude to match texture direction with standard coordinate system
+        float longitude = -((uv.x * 2.0f * PI) - PI);
 
         // Map V to Latitude
         // Web Mercator V goes from 0 (North) to 1 (South).
@@ -62,13 +63,13 @@ namespace Earth::Mercator
 
                 // Triangle 1
                 mesh.Indices.push_back(topLeft);
-                mesh.Indices.push_back(topRight);
                 mesh.Indices.push_back(bottomLeft);
+                mesh.Indices.push_back(topRight);
 
                 // Triangle 2
                 mesh.Indices.push_back(topRight);
-                mesh.Indices.push_back(bottomRight);
                 mesh.Indices.push_back(bottomLeft);
+                mesh.Indices.push_back(bottomRight);
             }
         }
 

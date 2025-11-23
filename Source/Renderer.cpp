@@ -52,18 +52,16 @@ namespace Earth
         m_IndexCount = (GLsizei)mesh.Indices.size();
     }
 
-    void Renderer::Draw(const glm::mat4& viewProjection)
+    void Renderer::Draw(const glm::mat4& viewProjection, bool showGrid)
     {
-        if (m_IndexCount == 0)
-            return;
-
         m_Shader.Bind();
 
         GLint loc = glGetUniformLocation(m_Shader.GetRendererID(), "u_ViewProjection");
         glUniformMatrix4fv(loc, 1, GL_FALSE, &viewProjection[0][0]);
 
+        m_Shader.SetBool("u_ShowGrid", showGrid);
+
         glBindVertexArray(m_VAO);
         glDrawElements(GL_TRIANGLES, m_IndexCount, GL_UNSIGNED_INT, 0);
-        glBindVertexArray(0);
     }
 }
