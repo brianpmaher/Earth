@@ -69,7 +69,8 @@ namespace Earth
                 m_Tile->Bind(0);
                 if (m_Tile->IsLoaded())
                 {
-                    renderer.DrawTile(viewProjection, m_X, m_Y, m_Z, true);
+                    bool showGrid = false;
+                    renderer.DrawTile(viewProjection, m_X, m_Y, m_Z, showGrid);
                 }
             }
         }
