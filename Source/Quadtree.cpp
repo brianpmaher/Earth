@@ -97,19 +97,29 @@ namespace Earth
         if (m_Z >= 21)
             return false;
 
-        // Calculate center of tile in 3D space
         float scale = 1.0f / (float)(1 << m_Z);
-        glm::vec2 centerUV = glm::vec2((float)m_X + 0.5f, (float)m_Y + 0.5f) * scale;
-        glm::vec3 centerPos = Mercator::UVToPosition(centerUV, 1.0f);
 
         glm::mat4 view = camera.GetViewMatrix();
         glm::vec3 camPos = glm::vec3(glm::inverse(view)[3]);
 
-        float dist = glm::distance(centerPos, camPos);
+        // Check distance to center and corners to handle seams correctly
+        glm::vec2 centerUV = glm::vec2((float)m_X + 0.5f, (float)m_Y + 0.5f) * scale;
+        float minDist = glm::distance(Mercator::UVToPosition(centerUV, 1.0f), camPos);
+
+        glm::vec2 corners[] = {
+            glm::vec2((float)m_X, (float)m_Y) * scale, glm::vec2((float)m_X + 1.0f, (float)m_Y) * scale,
+            glm::vec2((float)m_X, (float)m_Y + 1.0f) * scale, glm::vec2((float)m_X + 1.0f, (float)m_Y + 1.0f) * scale};
+
+        for (const auto& uv : corners)
+        {
+            float dist = glm::distance(Mercator::UVToPosition(uv, 1.0f), camPos);
+            if (dist < minDist)
+                minDist = dist;
+        }
 
         // Split if distance is small relative to tile size
         // Tile size is roughly proportional to scale (1 / 2^z)
-        return dist < 2.5f * scale;
+        return minDist < 2.5f * scale;
     }
 
     Quadtree::Quadtree(Tileset& tileset) : m_Tileset(tileset)
