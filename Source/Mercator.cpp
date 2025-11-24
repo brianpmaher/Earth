@@ -11,8 +11,7 @@ namespace Earth::Mercator
         const float PI = glm::pi<float>();
 
         // Map U to Longitude [-PI, PI]
-        // Invert longitude to match texture direction with standard coordinate system
-        float longitude = -((uv.x * 2.0f * PI) - PI);
+        float longitude = (uv.x * 2.0f * PI) - PI;
 
         // Map V to Latitude
         // Web Mercator V goes from 0 (North) to 1 (South).
@@ -23,9 +22,9 @@ namespace Earth::Mercator
         // Spherical to Cartesian
         float cosLat = std::cos(latitude);
 
-        float x = radius * cosLat * std::cos(longitude);
+        float x = radius * cosLat * std::sin(longitude);
         float y = radius * std::sin(latitude);
-        float z = radius * cosLat * std::sin(longitude);
+        float z = radius * cosLat * std::cos(longitude);
 
         return glm::vec3(x, y, z);
     }
