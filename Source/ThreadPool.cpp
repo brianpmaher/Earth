@@ -29,6 +29,9 @@ namespace Earth
         {
             std::unique_lock<std::mutex> lock(queue_mutex);
             stop = true;
+            // Clear pending tasks to avoid processing them during shutdown
+            std::queue<std::function<void()>> empty;
+            std::swap(tasks, empty);
         }
         condition.notify_all();
         for (std::thread& worker : workers)

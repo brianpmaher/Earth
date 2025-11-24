@@ -11,8 +11,6 @@ namespace Earth
         : m_Parent(parent), m_X(x), m_Y(y), m_Z(z), m_SatelliteTileset(satelliteTileset),
           m_TerrainTileset(terrainTileset)
     {
-        m_SatelliteTile = m_SatelliteTileset.LoadTile(x, y, z);
-        m_TerrainTile = m_TerrainTileset.LoadTile(x, y, z);
     }
 
     QuadtreeNode::~QuadtreeNode()
@@ -21,6 +19,21 @@ namespace Earth
 
     void QuadtreeNode::Update(const Camera& camera)
     {
+        m_IsVisible = CheckVisibility(camera);
+
+        if (!m_IsVisible)
+        {
+            if (!m_Children.empty())
+                Merge();
+            m_IsRenderable = false;
+            return;
+        }
+
+        if (!m_SatelliteTile)
+            m_SatelliteTile = m_SatelliteTileset.LoadTile(m_X, m_Y, m_Z);
+        if (!m_TerrainTile)
+            m_TerrainTile = m_TerrainTileset.LoadTile(m_X, m_Y, m_Z);
+
         if (m_SatelliteTile)
         {
             m_SatelliteTile->CheckLoad();
@@ -41,7 +54,9 @@ namespace Earth
             for (auto& child : m_Children)
             {
                 child->Update(camera);
-                if (!child->IsRenderable())
+                // If child is visible, it must be renderable to be considered ready.
+                // If child is NOT visible, it is considered ready (since it won't be drawn).
+                if (child->IsVisible() && !child->IsRenderable())
                 {
                     childrenReady = false;
                 }
@@ -63,6 +78,9 @@ namespace Earth
 
     void QuadtreeNode::Draw(Renderer& renderer, const glm::mat4& viewProjection)
     {
+        if (!m_IsVisible)
+            return;
+
         if (m_AllChildrenRenderable)
         {
             for (auto& child : m_Children)
@@ -112,27 +130,71 @@ namespace Earth
             return false;
 
         float scale = 1.0f / (float)(1 << m_Z);
-
         glm::vec3 camPos = camera.GetPosition();
 
-        // Check distance to center and corners to handle seams correctly
-        glm::vec2 centerUV = glm::vec2((float)m_X + 0.5f, (float)m_Y + 0.5f) * scale;
-        float minDist = glm::distance(Mercator::UVToPosition(centerUV, 1.0f), camPos);
+        float minDist = std::numeric_limits<float>::max();
 
-        glm::vec2 corners[] = {
-            glm::vec2((float)m_X, (float)m_Y) * scale, glm::vec2((float)m_X + 1.0f, (float)m_Y) * scale,
-            glm::vec2((float)m_X, (float)m_Y + 1.0f) * scale, glm::vec2((float)m_X + 1.0f, (float)m_Y + 1.0f) * scale};
-
-        for (const auto& uv : corners)
+        for (int y = 0; y <= 2; ++y)
         {
-            float dist = glm::distance(Mercator::UVToPosition(uv, 1.0f), camPos);
-            if (dist < minDist)
-                minDist = dist;
+            for (int x = 0; x <= 2; ++x)
+            {
+                glm::vec2 uv = glm::vec2((float)m_X + x * 0.5f, (float)m_Y + y * 0.5f) * scale;
+                glm::vec3 p = Mercator::UVToPosition(uv, 1.0f);
+                float d = glm::distance(p, camPos);
+                if (d < minDist)
+                {
+                    minDist = d;
+                }
+            }
         }
 
-        // Split if distance is small relative to tile size
-        // Tile size is roughly proportional to scale (1 / 2^z)
-        return minDist < 3.5f * scale;
+        // Avoid division by zero
+        minDist = std::max(minDist, 0.00001f);
+
+        float tileWidth = glm::pi<float>() * 2.0f * scale;
+        float sse = (tileWidth * camera.GetHeight()) / (2.0f * minDist * std::tan(camera.GetFOV() / 2.0f));
+
+        bool isSplit = !m_Children.empty();
+        float threshold = isSplit ? 200.0f : 250.0f;
+
+        return sse > threshold;
+    }
+    bool QuadtreeNode::CheckVisibility(const Camera& camera) const
+    {
+        if (m_Z < 1)
+            return true;
+
+        float scale = 1.0f / (float)(1 << m_Z);
+        glm::vec3 min(std::numeric_limits<float>::max());
+        glm::vec3 max(std::numeric_limits<float>::lowest());
+
+        glm::vec3 camPos = camera.GetPosition();
+        bool anyVisible = false;
+
+        for (int y = 0; y <= 4; ++y)
+        {
+            for (int x = 0; x <= 4; ++x)
+            {
+                glm::vec2 uv = glm::vec2((float)m_X + (float)x / 4.0f, (float)m_Y + (float)y / 4.0f) * scale;
+                glm::vec3 p = Mercator::UVToPosition(uv);
+
+                if (glm::dot(glm::normalize(p), camPos) > 1.0f - 0.05f)
+                {
+                    anyVisible = true;
+                }
+
+                min = glm::min(min, p);
+                max = glm::max(max, p);
+            }
+        }
+
+        if (!anyVisible)
+            return false;
+
+        min -= glm::vec3(0.002f);
+        max += glm::vec3(0.002f);
+
+        return camera.GetFrustum().IsBoxVisible(min, max);
     }
 
     Quadtree::Quadtree(Tileset& satelliteTileset, Tileset& terrainTileset)

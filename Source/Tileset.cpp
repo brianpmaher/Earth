@@ -6,6 +6,13 @@
 #include <format>
 #include <print>
 
+#ifndef GL_TEXTURE_MAX_ANISOTROPY_EXT
+#define GL_TEXTURE_MAX_ANISOTROPY_EXT 0x84FE
+#endif
+#ifndef GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT
+#define GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT 0x84FF
+#endif
+
 namespace Earth
 {
     static Logger s_Logger("Tileset");
@@ -13,12 +20,14 @@ namespace Earth
     std::atomic<int> Tile::s_TotalTiles = 0;
     std::atomic<int> Tile::s_LoadingTiles = 0;
     std::atomic<int> Tile::s_LoadedTiles = 0;
+    int Tile::s_UploadsPerFrame = 0;
 
     Tile::Tile(int x, int y, int z, const URL& urlTemplate, bool generateMipmaps, ThreadPool& threadPool)
         : X(x), Y(y), Z(z), m_GenerateMipmaps(generateMipmaps)
     {
         s_TotalTiles++;
         s_LoadingTiles++;
+        m_Cancelled = std::make_shared<std::atomic<bool>>(false);
 
         std::string url = urlTemplate.Get();
         // Simple replacement for now. In a real app, use a proper template engine or regex.
@@ -39,10 +48,11 @@ namespace Earth
 
         s_Logger.Info("Fetching tile: {}", url);
 
-        m_Future = threadPool.Enqueue([url]() {
+        std::shared_ptr<std::atomic<bool>> cancelled = m_Cancelled;
+        m_Future = threadPool.Enqueue([url, cancelled]() {
             try
             {
-                std::string imageData = HTTP::Fetch(url);
+                std::string imageData = HTTP::Fetch(url, cancelled.get());
                 return Image(imageData);
             }
             catch (const std::exception& e)
@@ -55,6 +65,9 @@ namespace Earth
 
     Tile::~Tile()
     {
+        if (m_Cancelled)
+            *m_Cancelled = true;
+
         s_TotalTiles--;
         if (m_IsLoading)
             s_LoadingTiles--;
@@ -82,8 +95,12 @@ namespace Earth
     {
         if (m_IsLoading && m_Future.valid())
         {
+            if (s_UploadsPerFrame >= MAX_UPLOADS_PER_FRAME)
+                return;
+
             if (m_Future.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
             {
+                s_UploadsPerFrame++;
                 Image image = m_Future.get();
                 m_IsLoading = false;
                 s_LoadingTiles--;
@@ -106,6 +123,10 @@ namespace Earth
                         glGenerateMipmap(GL_TEXTURE_2D);
                         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
                         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+                        GLfloat maxAniso = 0.0f;
+                        glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxAniso);
+                        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, maxAniso);
                     }
                     else
                     {

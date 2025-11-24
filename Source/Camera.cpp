@@ -246,4 +246,48 @@ namespace Earth
 
         m_ViewMatrix = glm::lookAt(m_Position, m_TargetPosition, worldCamUp);
     }
+
+    bool Frustum::IsBoxVisible(const glm::vec3& min, const glm::vec3& max) const
+    {
+        for (const auto& plane : Planes)
+        {
+            glm::vec3 p;
+            p.x = plane.x > 0 ? max.x : min.x;
+            p.y = plane.y > 0 ? max.y : min.y;
+            p.z = plane.z > 0 ? max.z : min.z;
+
+            if (glm::dot(glm::vec3(plane), p) + plane.w < 0)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    Frustum Camera::GetFrustum() const
+    {
+        Frustum frustum;
+        glm::mat4 vp = GetProjectionMatrix() * GetViewMatrix();
+
+        frustum.Planes[0] =
+            glm::vec4(vp[0][3] + vp[0][0], vp[1][3] + vp[1][0], vp[2][3] + vp[2][0], vp[3][3] + vp[3][0]); // Left
+        frustum.Planes[1] =
+            glm::vec4(vp[0][3] - vp[0][0], vp[1][3] - vp[1][0], vp[2][3] - vp[2][0], vp[3][3] - vp[3][0]); // Right
+        frustum.Planes[2] =
+            glm::vec4(vp[0][3] + vp[0][1], vp[1][3] + vp[1][1], vp[2][3] + vp[2][1], vp[3][3] + vp[3][1]); // Bottom
+        frustum.Planes[3] =
+            glm::vec4(vp[0][3] - vp[0][1], vp[1][3] - vp[1][1], vp[2][3] - vp[2][1], vp[3][3] - vp[3][1]); // Top
+        frustum.Planes[4] =
+            glm::vec4(vp[0][3] + vp[0][2], vp[1][3] + vp[1][2], vp[2][3] + vp[2][2], vp[3][3] + vp[3][2]); // Near
+        frustum.Planes[5] =
+            glm::vec4(vp[0][3] - vp[0][2], vp[1][3] - vp[1][2], vp[2][3] - vp[2][2], vp[3][3] - vp[3][2]); // Far
+
+        for (auto& plane : frustum.Planes)
+        {
+            float length = glm::length(glm::vec3(plane));
+            plane /= length;
+        }
+
+        return frustum;
+    }
 }

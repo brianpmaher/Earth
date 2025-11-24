@@ -17,8 +17,13 @@ namespace
 
 namespace Earth::HTTP
 {
-    std::string Fetch(const URL& url)
+    std::string Fetch(const URL& url, std::atomic<bool>* cancelled)
     {
+        if (cancelled && *cancelled)
+        {
+            throw std::runtime_error("Request cancelled");
+        }
+
         CURLM* multi_handle = curl_multi_init();
         CURL* curl = curl_easy_init();
         std::string readBuffer;
@@ -39,6 +44,14 @@ namespace Earth::HTTP
             int still_running = 0;
             do
             {
+                if (cancelled && *cancelled)
+                {
+                    curl_multi_remove_handle(multi_handle, curl);
+                    curl_easy_cleanup(curl);
+                    curl_multi_cleanup(multi_handle);
+                    throw std::runtime_error("Request cancelled");
+                }
+
                 CURLMcode mc = curl_multi_perform(multi_handle, &still_running);
                 if (mc)
                 {
@@ -47,7 +60,7 @@ namespace Earth::HTTP
 
                 if (still_running)
                 {
-                    curl_multi_poll(multi_handle, NULL, 0, 1000, NULL);
+                    curl_multi_poll(multi_handle, NULL, 0, 100, NULL);
                 }
             } while (still_running);
 

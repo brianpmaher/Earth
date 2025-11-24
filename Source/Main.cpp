@@ -155,6 +155,8 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 
 SDL_AppResult SDL_AppIterate(void* appstate)
 {
+    Earth::Tile::ResetUploadStats();
+
     // Start the Dear ImGui frame
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL3_NewFrame();
@@ -416,6 +418,15 @@ void SDL_AppQuit(void* appstate, SDL_AppResult result)
     ImGui::DestroyContext();
 
     SDL_GL_DestroyContext(s_GLContext);
+
+    // Destroy scene objects before the thread pool to ensure
+    // all Tiles are destroyed and their requests cancelled.
+    s_Quadtree.reset();
+    s_SatelliteTileset.reset();
+    s_TerrainTileset.reset();
+    s_Camera.reset();
+    s_Framebuffer.reset();
+    s_Renderer.reset();
 
     s_Window.reset();
     s_ThreadPool.reset();

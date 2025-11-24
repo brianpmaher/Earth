@@ -30,9 +30,17 @@ namespace Earth
         static std::atomic<int> s_TotalTiles;
         static std::atomic<int> s_LoadingTiles;
         static std::atomic<int> s_LoadedTiles;
+        static int s_UploadsPerFrame;
+        static const int MAX_UPLOADS_PER_FRAME = 4;
+
+        static void ResetUploadStats()
+        {
+            s_UploadsPerFrame = 0;
+        }
 
       private:
         std::future<Image> m_Future;
+        std::shared_ptr<std::atomic<bool>> m_Cancelled;
         bool m_IsLoading = true;
         bool m_GenerateMipmaps = false;
     };

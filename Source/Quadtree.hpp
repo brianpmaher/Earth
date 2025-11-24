@@ -23,10 +23,16 @@ namespace Earth
             return m_IsRenderable;
         }
 
+        bool IsVisible() const
+        {
+            return m_IsVisible;
+        }
+
       private:
         void Split();
         void Merge();
         bool ShouldSplit(const Camera& camera) const;
+        bool CheckVisibility(const Camera& camera) const;
 
         QuadtreeNode* m_Parent;
         int m_X, m_Y, m_Z;
@@ -38,6 +44,7 @@ namespace Earth
         std::vector<std::unique_ptr<QuadtreeNode>> m_Children;
 
         bool m_IsRenderable = false;
+        bool m_IsVisible = true;
         bool m_AllChildrenRenderable = false;
     };
 

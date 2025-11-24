@@ -1,10 +1,18 @@
 #pragma once
 
 #include <SDL3/SDL_events.h>
+#include <array>
 #include <glm/glm.hpp>
 
 namespace Earth
 {
+    struct Frustum
+    {
+        std::array<glm::vec4, 6> Planes;
+
+        bool IsBoxVisible(const glm::vec3& min, const glm::vec3& max) const;
+    };
+
     class Camera
     {
       public:
@@ -16,6 +24,20 @@ namespace Earth
 
         glm::mat4 GetViewMatrix() const;
         glm::mat4 GetProjectionMatrix() const;
+        Frustum GetFrustum() const;
+
+        float GetWidth() const
+        {
+            return m_Width;
+        }
+        float GetHeight() const
+        {
+            return m_Height;
+        }
+        float GetFOV() const
+        {
+            return glm::radians(45.0f);
+        }
 
         glm::vec3 GetPosition() const
         {

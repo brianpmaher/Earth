@@ -29,6 +29,22 @@ namespace Earth::Mercator
         return glm::vec3(x, y, z);
     }
 
+    glm::vec2 PositionToUV(const glm::vec3& position)
+    {
+        const float PI = glm::pi<float>();
+        glm::vec3 p = glm::normalize(position);
+
+        float longitude = std::atan2(p.x, p.z);
+        float latitude = std::asin(p.y);
+
+        float u = (longitude + PI) / (2.0f * PI);
+
+        float mercatorY = std::log(std::tan((latitude + PI / 2.0f) / 2.0f));
+        float v = (1.0f - mercatorY / PI) / 2.0f;
+
+        return glm::vec2(u, v);
+    }
+
     Mesh GeneratePlaneMesh(int resolution)
     {
         Mesh mesh;
