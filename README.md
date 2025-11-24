@@ -2,7 +2,7 @@
 
 A 3D Earth renderer with satellite imagery and terrain elevation data fetched dynamically from MapTiler.
 
-![](screenshot.png)
+![](Screenshot.png)
 
 ## Prerequisites
 
