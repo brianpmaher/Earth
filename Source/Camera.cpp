@@ -111,6 +111,81 @@ namespace Earth
         UpdateViewMatrix();
     }
 
+    void Camera::SetPosition(const glm::vec3& position)
+    {
+        // Move camera to 'position' while keeping the same Target.
+        // Update Range, Heading, and Tilt based on the new vector (Position - Target).
+
+        glm::vec3 offset = position - m_TargetPosition;
+        m_Range = glm::length(offset);
+
+        if (m_Range < 0.00001f)
+        {
+            m_Range = 0.00001f;
+            UpdateViewMatrix();
+            return;
+        }
+
+        glm::vec3 dir = glm::normalize(offset);
+
+        // Decompose 'dir' into Heading and Tilt relative to the Target's local frame (East, North, Up).
+
+        // 1. Calculate Local Basis Vectors at Target
+        glm::vec3 up = glm::normalize(m_TargetPosition); // Surface Normal
+
+        glm::vec3 north;
+        if (std::abs(up.y) > 0.99f)
+        {
+            north = glm::vec3(1.0f, 0.0f, 0.0f); // Arbitrary at pole
+        }
+        else
+        {
+            north = glm::normalize(glm::vec3(0.0f, 1.0f, 0.0f) - up * up.y);
+        }
+
+        glm::vec3 east = glm::cross(north, up);
+
+        // 2. Project 'dir' onto this basis
+        float x = glm::dot(dir, east);
+        float y = glm::dot(dir, north);
+        float z = glm::dot(dir, up);
+
+        // 3. Convert (x, y, z) to Heading and Tilt
+        // z = cos(Tilt)
+        m_Tilt = std::acos(std::clamp(z, -1.0f, 1.0f));
+
+        // x = sin(Tilt) * sin(Heading)
+        // y = -sin(Tilt) * cos(Heading)
+        if (std::abs(std::sin(m_Tilt)) > 0.001f)
+        {
+            float sinT = std::sin(m_Tilt);
+            float sinH = x / sinT;
+            float cosH = -y / sinT;
+            m_Heading = std::atan2(sinH, cosH);
+        }
+
+        UpdateViewMatrix();
+    }
+
+    void Camera::SetTargetPosition(const glm::vec3& position)
+    {
+        m_TargetPosition = position;
+        // Convert to Lon/Lat
+        m_TargetLon = std::atan2(position.x, position.z);
+        m_TargetLat = std::asin(position.y);
+        UpdateViewMatrix();
+    }
+
+    void Camera::SetPositionLonLatAlt(float lon, float lat, float alt)
+    {
+        // Interpret as "Move the camera to this location and look down".
+        // Set Target = (lon, lat), Range = alt.
+        m_TargetLon = lon;
+        m_TargetLat = lat;
+        m_Range = alt;
+        UpdateViewMatrix();
+    }
+
     glm::mat4 Camera::GetViewMatrix() const
     {
         return m_ViewMatrix;
@@ -146,11 +221,6 @@ namespace Earth
         glm::vec3 east = glm::cross(north, up);
 
         // 3. Calculate Camera Position relative to Target
-        // We want to rotate "Up" vector by Tilt (around East) and Heading (around Up)
-        // Start with vector pointing UP (from Target to Camera if Tilt=0)
-        // Rotate by Tilt around East axis (Positive Tilt = Camera moves South/Back)
-        // Rotate by Heading around Up axis
-
         // Construct rotation matrix from basis
         glm::mat4 basis = glm::mat4(1.0f);
         basis[0] = glm::vec4(east, 0.0f);
@@ -160,17 +230,6 @@ namespace Earth
         // Local rotation
         // Tilt rotates around X (East)
         // Heading rotates around Z (Up)
-        // Note: In our basis, Z is Up. X is East. Y is North.
-        // Wait, let's check basis construction.
-        // basis[0] = X = East
-        // basis[1] = Y = North
-        // basis[2] = Z = Up
-
-        // We want camera vector.
-        // Start with (0,0,1) (Up)
-        // Tilt: Rotate around X (East). Positive Tilt moves vector towards -Y (South).
-        // Heading: Rotate around Z (Up).
-
         glm::mat4 rotTilt = glm::rotate(glm::mat4(1.0f), m_Tilt, glm::vec3(1, 0, 0));
         glm::mat4 rotHeading = glm::rotate(glm::mat4(1.0f), m_Heading, glm::vec3(0, 0, 1));
 
@@ -182,14 +241,6 @@ namespace Earth
         m_Position = m_TargetPosition + worldCamOffset * m_Range;
 
         // 4. Calculate View Matrix
-        // Up vector for LookAt should be the "Up" of the camera frame
-        // Local Up for camera is (0,1,0) (North) rotated?
-        // No, Camera Up is usually "Up" (Z) rotated by Tilt-90?
-        // Let's just use the transformed Y axis of the camera frame.
-        // Local Camera Up = (0, 1, 0) (North) rotated by Heading/Tilt?
-        // Actually, if we look down (Tilt 0), Camera Up is North (0,1,0).
-        // If we tilt back, Camera Up tilts back too.
-
         glm::vec3 localCamUp = glm::vec3(rotHeading * rotTilt * glm::vec4(0, 1, 0, 0));
         glm::vec3 worldCamUp = glm::vec3(basis * glm::vec4(localCamUp, 0.0f));
 

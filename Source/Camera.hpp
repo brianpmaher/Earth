@@ -31,6 +31,9 @@ namespace Earth
             lat = m_TargetLat;
         }
         void SetTargetLonLat(float lon, float lat);
+        void SetPosition(const glm::vec3& position);
+        void SetPositionLonLatAlt(float lon, float lat, float alt);
+        void SetTargetPosition(const glm::vec3& position);
         float GetRange() const
         {
             return m_Range;

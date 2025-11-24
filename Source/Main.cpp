@@ -256,35 +256,49 @@ SDL_AppResult SDL_AppIterate(void* appstate)
     {
         if (ImGui::Begin("Location", &s_ShowLocation))
         {
-            glm::vec3 camPos = s_Camera->GetPosition();
-            ImGui::Text("Camera Position (XYZ):");
-            ImGui::Text("%.3f, %.3f, %.3f", camPos.x, camPos.y, camPos.z);
-
-            float camHeight = glm::length(camPos) - 1.0f;
-            glm::vec3 camNormal = glm::normalize(camPos);
-            float camLon = std::atan2(camNormal.x, camNormal.z);
-            float camLat = std::asin(camNormal.y);
-            ImGui::Text("Camera Position (Lon/Lat/Alt):");
-            ImGui::Text("%.3f, %.3f, %.3f", glm::degrees(camLon), glm::degrees(camLat), camHeight);
-
-            ImGui::Separator();
-
-            glm::vec3 targetPos = s_Camera->GetTargetPosition();
-            ImGui::Text("Look At (XYZ):");
-            ImGui::Text("%.3f, %.3f, %.3f", targetPos.x, targetPos.y, targetPos.z);
-
+            // Camera Position (Lon/Lat/Alt)
             float targetLon, targetLat;
             s_Camera->GetTargetLonLat(targetLon, targetLat);
-            ImGui::Text("Look At (Lon/Lat):");
-            ImGui::Text("%.3f, %.3f", glm::degrees(targetLon), glm::degrees(targetLat));
+            float range = s_Camera->GetRange();
+
+            float camLonLatAlt[3] = {glm::degrees(targetLon), glm::degrees(targetLat), range};
+            ImGui::Text("Camera Lon/Lat/Alt");
+            ImGui::SetNextItemWidth(-1);
+            if (ImGui::InputFloat3("##CameraLonLatAlt", camLonLatAlt))
+            {
+                s_Camera->SetPositionLonLatAlt(glm::radians(camLonLatAlt[0]), glm::radians(camLonLatAlt[1]),
+                                               camLonLatAlt[2]);
+            }
+
+            // Camera Position (XYZ)
+            glm::vec3 camPos = s_Camera->GetPosition();
+            float camPosXYZ[3] = {camPos.x, camPos.y, camPos.z};
+            ImGui::Text("Camera XYZ");
+            ImGui::SetNextItemWidth(-1);
+            if (ImGui::InputFloat3("##CameraXYZ", camPosXYZ, "%.3f"))
+            {
+                s_Camera->SetPosition(glm::vec3(camPosXYZ[0], camPosXYZ[1], camPosXYZ[2]));
+            }
 
             ImGui::Separator();
 
-            static float flyTo[2] = {0.0f, 0.0f};
-            ImGui::InputFloat2("Lon/Lat", flyTo);
-            if (ImGui::Button("Fly To"))
+            // Look At (Lon/Lat)
+            float lookLonLat[2] = {glm::degrees(targetLon), glm::degrees(targetLat)};
+            ImGui::Text("Look At Lon/Lat");
+            ImGui::SetNextItemWidth(-1);
+            if (ImGui::InputFloat2("##LookAtLonLat", lookLonLat))
             {
-                s_Camera->SetTargetLonLat(glm::radians(flyTo[0]), glm::radians(flyTo[1]));
+                s_Camera->SetTargetLonLat(glm::radians(lookLonLat[0]), glm::radians(lookLonLat[1]));
+            }
+
+            // Look At (XYZ)
+            glm::vec3 targetPos = s_Camera->GetTargetPosition();
+            float targetPosXYZ[3] = {targetPos.x, targetPos.y, targetPos.z};
+            ImGui::Text("Look At XYZ");
+            ImGui::SetNextItemWidth(-1);
+            if (ImGui::InputFloat3("##LookAtXYZ", targetPosXYZ))
+            {
+                s_Camera->SetTargetPosition(glm::vec3(targetPosXYZ[0], targetPosXYZ[1], targetPosXYZ[2]));
             }
         }
         ImGui::End();
