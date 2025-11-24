@@ -26,11 +26,13 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <algorithm>
 #include <format>
 #include <fstream>
 #include <memory>
 #include <print>
 #include <string>
+#include <vector>
 
 namespace
 {
@@ -59,6 +61,8 @@ namespace
     bool s_ViewportFocused = false;
     bool s_ViewportHovered = false;
     std::vector<float> s_FrameTimes;
+    std::vector<float> s_LoadingTilesHistory;
+    std::vector<float> s_LoadedTilesHistory;
 
     void LoadCameraSettings()
     {
@@ -308,6 +312,14 @@ SDL_AppResult SDL_AppIterate(void* appstate)
             s_FrameTimes.erase(s_FrameTimes.begin());
         s_FrameTimes.push_back(ImGui::GetIO().Framerate);
 
+        if (s_LoadingTilesHistory.size() >= 60)
+            s_LoadingTilesHistory.erase(s_LoadingTilesHistory.begin());
+        s_LoadingTilesHistory.push_back((float)Earth::Tile::s_LoadingTiles.load());
+
+        if (s_LoadedTilesHistory.size() >= 60)
+            s_LoadedTilesHistory.erase(s_LoadedTilesHistory.begin());
+        s_LoadedTilesHistory.push_back((float)Earth::Tile::s_LoadedTiles.load());
+
         s_TimeAccumulator = 0.0f;
     }
 
@@ -317,8 +329,6 @@ SDL_AppResult SDL_AppIterate(void* appstate)
         {
             float framerate = ImGui::GetIO().Framerate;
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / framerate, framerate);
-            ImGui::Text("Tiles: %d Total, %d Loading, %d Loaded", Earth::Tile::s_TotalTiles.load(),
-                        Earth::Tile::s_LoadingTiles.load(), Earth::Tile::s_LoadedTiles.load());
 
             ImGui::PlotConfig conf;
             conf.values.xs = nullptr;
@@ -334,6 +344,48 @@ SDL_AppResult SDL_AppIterate(void* appstate)
             conf.line_thickness = 2.f;
 
             ImGui::Plot("FPS", conf);
+
+            ImGui::Separator();
+
+            ImGui::Text("Tiles: %d Total", Earth::Tile::s_TotalTiles.load());
+            ImGui::SameLine();
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 0.0f, 1.0f));
+            ImGui::Text("Loading: %d", Earth::Tile::s_LoadingTiles.load());
+            ImGui::PopStyleColor();
+            ImGui::SameLine();
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
+            ImGui::Text("Loaded: %d", Earth::Tile::s_LoadedTiles.load());
+            ImGui::PopStyleColor();
+
+            {
+                float maxTiles = 0.0f;
+                for (float v : s_LoadingTilesHistory)
+                    maxTiles = std::max(maxTiles, v);
+                for (float v : s_LoadedTilesHistory)
+                    maxTiles = std::max(maxTiles, v);
+                if (maxTiles < 10.0f)
+                    maxTiles = 10.0f;
+
+                const float* ys_list[] = {s_LoadingTilesHistory.data(), s_LoadedTilesHistory.data()};
+                static const ImU32 colors[] = {ImColor(255, 255, 0), ImColor(0, 255, 0)};
+
+                ImGui::PlotConfig tilesConf;
+                tilesConf.values.xs = nullptr;
+                tilesConf.values.ys_list = ys_list;
+                tilesConf.values.ys_count = 2;
+                tilesConf.values.colors = colors;
+                tilesConf.values.count = (int)s_LoadingTilesHistory.size();
+                tilesConf.scale.min = 0;
+                tilesConf.scale.max = maxTiles;
+                tilesConf.tooltip.show = true;
+                tilesConf.tooltip.format = "%.0f";
+                tilesConf.grid_x.show = false;
+                tilesConf.grid_y.show = true;
+                tilesConf.frame_size = ImVec2(ImGui::GetContentRegionAvail().x, 200);
+                tilesConf.line_thickness = 2.f;
+
+                ImGui::Plot("Tiles", tilesConf);
+            }
         }
         ImGui::End();
     }
