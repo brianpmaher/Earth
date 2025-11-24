@@ -113,8 +113,7 @@ namespace Earth
 
         float scale = 1.0f / (float)(1 << m_Z);
 
-        glm::mat4 view = camera.GetViewMatrix();
-        glm::vec3 camPos = glm::vec3(glm::inverse(view)[3]);
+        glm::vec3 camPos = camera.GetPosition();
 
         // Check distance to center and corners to handle seams correctly
         glm::vec2 centerUV = glm::vec2((float)m_X + 0.5f, (float)m_Y + 0.5f) * scale;
@@ -133,7 +132,7 @@ namespace Earth
 
         // Split if distance is small relative to tile size
         // Tile size is roughly proportional to scale (1 / 2^z)
-        return minDist < 2.5f * scale;
+        return minDist < 3.5f * scale;
     }
 
     Quadtree::Quadtree(Tileset& satelliteTileset, Tileset& terrainTileset)
