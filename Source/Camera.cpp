@@ -111,6 +111,16 @@ namespace Earth
         UpdateViewMatrix();
     }
 
+    void Camera::SetOrbit(float targetLon, float targetLat, float range, float heading, float tilt)
+    {
+        m_TargetLon = targetLon;
+        m_TargetLat = targetLat;
+        m_Range = range;
+        m_Heading = heading;
+        m_Tilt = tilt;
+        UpdateViewMatrix();
+    }
+
     void Camera::SetPosition(const glm::vec3& position)
     {
         // Move camera to 'position' while keeping the same Target.

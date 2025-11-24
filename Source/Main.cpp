@@ -27,8 +27,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <format>
+#include <fstream>
 #include <memory>
 #include <print>
+#include <string>
 
 namespace
 {
@@ -51,12 +53,61 @@ namespace
     std::unique_ptr<Earth::Camera> s_Camera;
     std::unique_ptr<Earth::Framebuffer> s_Framebuffer;
     std::unique_ptr<Earth::ThreadPool> s_ThreadPool;
-    bool s_ShowLog = false;
+    bool s_ShowLog = true;
     bool s_ShowPerformance = true;
     bool s_ShowLocation = true;
     bool s_ViewportFocused = false;
     bool s_ViewportHovered = false;
     std::vector<float> s_FrameTimes;
+
+    void LoadCameraSettings()
+    {
+        std::ifstream file("earth.ini");
+        if (!file.is_open())
+            return;
+
+        std::string line;
+        float targetLon = 0.0f, targetLat = 0.0f, range = 2.0f, heading = 0.0f, tilt = 0.0f;
+        bool hasData = false;
+
+        while (std::getline(file, line))
+        {
+            if (sscanf(line.c_str(), "TargetLon=%f", &targetLon) == 1)
+                hasData = true;
+            else if (sscanf(line.c_str(), "TargetLat=%f", &targetLat) == 1)
+                hasData = true;
+            else if (sscanf(line.c_str(), "Range=%f", &range) == 1)
+                hasData = true;
+            else if (sscanf(line.c_str(), "Heading=%f", &heading) == 1)
+                hasData = true;
+            else if (sscanf(line.c_str(), "Tilt=%f", &tilt) == 1)
+                hasData = true;
+        }
+
+        if (hasData && s_Camera)
+        {
+            s_Camera->SetOrbit(targetLon, targetLat, range, heading, tilt);
+        }
+    }
+
+    void SaveCameraSettings()
+    {
+        if (!s_Camera)
+            return;
+
+        std::ofstream file("earth.ini");
+        if (!file.is_open())
+            return;
+
+        float targetLon, targetLat;
+        s_Camera->GetTargetLonLat(targetLon, targetLat);
+
+        file << "TargetLon=" << targetLon << "\n";
+        file << "TargetLat=" << targetLat << "\n";
+        file << "Range=" << s_Camera->GetRange() << "\n";
+        file << "Heading=" << s_Camera->GetHeading() << "\n";
+        file << "Tilt=" << s_Camera->GetTilt() << "\n";
+    }
 }
 
 SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
@@ -90,6 +141,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 
     s_Renderer = std::make_unique<Earth::Renderer>();
     s_Camera = std::make_unique<Earth::Camera>(1280.0f, 720.0f);
+    LoadCameraSettings();
     s_Framebuffer = std::make_unique<Earth::Framebuffer>(1280, 720);
     s_ThreadPool = std::make_unique<Earth::ThreadPool>(std::thread::hardware_concurrency());
 
@@ -137,6 +189,29 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
+
+    ImGuiSettingsHandler ini_handler;
+    ini_handler.TypeName = "Earth";
+    ini_handler.TypeHash = ImHashStr("Earth");
+    ini_handler.ReadOpenFn = [](ImGuiContext*, ImGuiSettingsHandler*, const char* name) -> void* { return (void*)1; };
+    ini_handler.ReadLineFn = [](ImGuiContext*, ImGuiSettingsHandler*, void*, const char* line) {
+        int val;
+        if (sscanf(line, "ShowLog=%d", &val) == 1)
+            s_ShowLog = (bool)val;
+        else if (sscanf(line, "ShowPerformance=%d", &val) == 1)
+            s_ShowPerformance = (bool)val;
+        else if (sscanf(line, "ShowLocation=%d", &val) == 1)
+            s_ShowLocation = (bool)val;
+    };
+    ini_handler.WriteAllFn = [](ImGuiContext*, ImGuiSettingsHandler*, ImGuiTextBuffer* buf) {
+        buf->appendf("[Earth][Settings]\n");
+        buf->appendf("ShowLog=%d\n", s_ShowLog);
+        buf->appendf("ShowPerformance=%d\n", s_ShowPerformance);
+        buf->appendf("ShowLocation=%d\n", s_ShowLocation);
+        buf->appendf("\n");
+    };
+    ImGui::AddSettingsHandler(&ini_handler);
+
     ImGuiIO& io = ImGui::GetIO();
     (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
@@ -149,6 +224,8 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
     // Setup Platform/Renderer backends
     ImGui_ImplSDL3_InitForOpenGL(s_Window.get(), s_GLContext);
     ImGui_ImplOpenGL3_Init("#version 410");
+
+    LoadCameraSettings();
 
     return SDL_APP_CONTINUE;
 }
@@ -413,6 +490,8 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 
 void SDL_AppQuit(void* appstate, SDL_AppResult result)
 {
+    SaveCameraSettings();
+
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplSDL3_Shutdown();
     ImGui::DestroyContext();
