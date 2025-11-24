@@ -4,6 +4,7 @@
 #include "Mercator.hpp"
 #include "Quadtree.hpp"
 #include "Renderer.hpp"
+#include "ThreadPool.hpp"
 #include "TileJSON.hpp"
 #include "Tileset.hpp"
 
@@ -13,6 +14,7 @@
 #include "imgui_internal.h"
 #include "imgui_plot.h"
 
+#include <curl/curl.h>
 #include <dotenv.h>
 
 #include <SDL3/SDL_events.h>
@@ -48,6 +50,7 @@ namespace
     std::unique_ptr<Earth::Quadtree> s_Quadtree;
     std::unique_ptr<Earth::Camera> s_Camera;
     std::unique_ptr<Earth::Framebuffer> s_Framebuffer;
+    std::unique_ptr<Earth::ThreadPool> s_ThreadPool;
     bool s_ShowLog = false;
     bool s_ShowPerformance = true;
     bool s_ShowLocation = true;
@@ -58,6 +61,7 @@ namespace
 
 SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 {
+    curl_global_init(CURL_GLOBAL_ALL);
     dotenv::init();
 
     if (!SDL_InitSubSystem(SDL_INIT_VIDEO))
@@ -87,6 +91,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
     s_Renderer = std::make_unique<Earth::Renderer>();
     s_Camera = std::make_unique<Earth::Camera>(1280.0f, 720.0f);
     s_Framebuffer = std::make_unique<Earth::Framebuffer>(1280, 720);
+    s_ThreadPool = std::make_unique<Earth::ThreadPool>(std::thread::hardware_concurrency());
 
     if (const char* mapTilerKey = std::getenv("MAPTILER_KEY"))
     {
@@ -107,8 +112,8 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
                 Earth::URL satTileUrl = satTiles[0].get<std::string>();
                 Earth::URL terrainTileUrl = terrainTiles[0].get<std::string>();
 
-                s_SatelliteTileset = std::make_unique<Earth::Tileset>(satTileUrl, true);
-                s_TerrainTileset = std::make_unique<Earth::Tileset>(terrainTileUrl, false);
+                s_SatelliteTileset = std::make_unique<Earth::Tileset>(satTileUrl, *s_ThreadPool, true);
+                s_TerrainTileset = std::make_unique<Earth::Tileset>(terrainTileUrl, *s_ThreadPool, false);
                 s_Quadtree = std::make_unique<Earth::Quadtree>(*s_SatelliteTileset, *s_TerrainTileset);
             }
         }
@@ -413,4 +418,6 @@ void SDL_AppQuit(void* appstate, SDL_AppResult result)
     SDL_GL_DestroyContext(s_GLContext);
 
     s_Window.reset();
+    s_ThreadPool.reset();
+    curl_global_cleanup();
 }

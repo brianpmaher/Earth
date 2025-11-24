@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Image.hpp"
+#include "ThreadPool.hpp"
 #include "URL.hpp"
 
 #include <OpenGL/gl3.h>
@@ -13,7 +14,7 @@ namespace Earth
 {
     struct Tile
     {
-        Tile(int x, int y, int z, const URL& urlTemplate, bool generateMipmaps);
+        Tile(int x, int y, int z, const URL& urlTemplate, bool generateMipmaps, ThreadPool& threadPool);
         ~Tile();
 
         void Bind(int slot = 0);
@@ -39,12 +40,13 @@ namespace Earth
     class Tileset
     {
       public:
-        Tileset(const URL& urlTemplate, bool generateMipmaps = false);
+        Tileset(const URL& urlTemplate, ThreadPool& threadPool, bool generateMipmaps = false);
 
         std::shared_ptr<Tile> LoadTile(int x, int y, int z);
 
       private:
         URL m_UrlTemplate;
         bool m_GenerateMipmaps;
+        ThreadPool& m_ThreadPool;
     };
 }

@@ -78,6 +78,7 @@ add_executable(${PROJECT_NAME}
     Source/Mercator.cpp
     Source/TileJSON.cpp
     Source/Tileset.cpp
+    Source/ThreadPool.cpp
     Source/HTTP.cpp
     Source/Image.cpp
     Source/Main.cpp

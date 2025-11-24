@@ -14,7 +14,7 @@ namespace Earth
     std::atomic<int> Tile::s_LoadingTiles = 0;
     std::atomic<int> Tile::s_LoadedTiles = 0;
 
-    Tile::Tile(int x, int y, int z, const URL& urlTemplate, bool generateMipmaps)
+    Tile::Tile(int x, int y, int z, const URL& urlTemplate, bool generateMipmaps, ThreadPool& threadPool)
         : X(x), Y(y), Z(z), m_GenerateMipmaps(generateMipmaps)
     {
         s_TotalTiles++;
@@ -39,7 +39,7 @@ namespace Earth
 
         s_Logger.Info("Fetching tile: {}", url);
 
-        m_Future = std::async(std::launch::async, [url]() {
+        m_Future = threadPool.Enqueue([url]() {
             try
             {
                 std::string imageData = HTTP::Fetch(url);
@@ -122,13 +122,13 @@ namespace Earth
         }
     }
 
-    Tileset::Tileset(const URL& urlTemplate, bool generateMipmaps)
-        : m_UrlTemplate(urlTemplate), m_GenerateMipmaps(generateMipmaps)
+    Tileset::Tileset(const URL& urlTemplate, ThreadPool& threadPool, bool generateMipmaps)
+        : m_UrlTemplate(urlTemplate), m_ThreadPool(threadPool), m_GenerateMipmaps(generateMipmaps)
     {
     }
 
     std::shared_ptr<Tile> Tileset::LoadTile(int x, int y, int z)
     {
-        return std::make_shared<Tile>(x, y, z, m_UrlTemplate, m_GenerateMipmaps);
+        return std::make_shared<Tile>(x, y, z, m_UrlTemplate, m_GenerateMipmaps, m_ThreadPool);
     }
 }
