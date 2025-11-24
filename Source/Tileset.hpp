@@ -4,6 +4,7 @@
 #include "URL.hpp"
 
 #include <OpenGL/gl3.h>
+#include <atomic>
 #include <future>
 #include <memory>
 #include <string>
@@ -24,6 +25,10 @@ namespace Earth
 
         int X, Y, Z;
         GLuint TextureID = 0;
+
+        static std::atomic<int> s_TotalTiles;
+        static std::atomic<int> s_LoadingTiles;
+        static std::atomic<int> s_LoadedTiles;
 
       private:
         std::future<Image> m_Future;

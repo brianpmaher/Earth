@@ -233,6 +233,8 @@ SDL_AppResult SDL_AppIterate(void* appstate)
         {
             float framerate = ImGui::GetIO().Framerate;
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / framerate, framerate);
+            ImGui::Text("Tiles: %d Total, %d Loading, %d Loaded", Earth::Tile::s_TotalTiles.load(),
+                        Earth::Tile::s_LoadingTiles.load(), Earth::Tile::s_LoadedTiles.load());
 
             ImGui::PlotConfig conf;
             conf.values.xs = nullptr;

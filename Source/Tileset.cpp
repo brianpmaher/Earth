@@ -10,9 +10,16 @@ namespace Earth
 {
     static Logger s_Logger("Tileset");
 
+    std::atomic<int> Tile::s_TotalTiles = 0;
+    std::atomic<int> Tile::s_LoadingTiles = 0;
+    std::atomic<int> Tile::s_LoadedTiles = 0;
+
     Tile::Tile(int x, int y, int z, const URL& urlTemplate, bool generateMipmaps)
         : X(x), Y(y), Z(z), m_GenerateMipmaps(generateMipmaps)
     {
+        s_TotalTiles++;
+        s_LoadingTiles++;
+
         std::string url = urlTemplate.Get();
         // Simple replacement for now. In a real app, use a proper template engine or regex.
         // The template is like "https://.../{z}/{x}/{y}.jpg"
@@ -48,6 +55,12 @@ namespace Earth
 
     Tile::~Tile()
     {
+        s_TotalTiles--;
+        if (m_IsLoading)
+            s_LoadingTiles--;
+        if (TextureID)
+            s_LoadedTiles--;
+
         if (TextureID)
         {
             glDeleteTextures(1, &TextureID);
@@ -73,9 +86,11 @@ namespace Earth
             {
                 Image image = m_Future.get();
                 m_IsLoading = false;
+                s_LoadingTiles--;
 
                 if (image.GetData())
                 {
+                    s_LoadedTiles++;
                     glGenTextures(1, &TextureID);
                     glBindTexture(GL_TEXTURE_2D, TextureID);
 
