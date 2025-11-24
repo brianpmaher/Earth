@@ -35,8 +35,7 @@ void main()
     // Mercator Projection to Sphere Position
     
     // Map U to Longitude [-PI, PI]
-    // Invert longitude to match texture direction
-    float longitude = -((v_GlobalUV.x * 2.0 * PI) - PI);
+    float longitude = (v_GlobalUV.x * 2.0 * PI) - PI;
 
     // Map V to Latitude
     float mercatorY = PI * (1.0 - 2.0 * v_GlobalUV.y);
@@ -46,9 +45,9 @@ void main()
     float cosLat = cos(latitude);
     float radius = 1.0 + (elevation / EARTH_RADIUS);
 
-    float x = radius * cosLat * cos(longitude);
+    float x = radius * cosLat * sin(longitude);
     float y = radius * sin(latitude);
-    float z = radius * cosLat * sin(longitude);
+    float z = radius * cosLat * cos(longitude);
 
     gl_Position = u_ViewProjection * vec4(x, y, z, 1.0);
 }
